@@ -1,22 +1,88 @@
 # does garden class need to inherit from anything? Automatically inherit from basic object?
 # does it know its own name?
 
+require 'Date'
+
 class Garden
-  attr_accessor :area
+  attr_reader :plantings, :area
+  attr_accessor :name
 
-  def initialize
-    @harvests = []
-
-    # add validation here or in the app?
-    @num_plants
+  def initialize(name, area = 0)
+    @name = name
+    @plantings = []
+    @area
   end
 
-  def << (new_harvest)
-    @harvests << new_harvest
+  def << (new_planting)
+    raise ArgumentError unless new_planting.class == Planting
+
+    @plantings << new_planting
+  end
+
+  def change_area(new_val)
+    @area = new_val
+  end
+
+  # problem - this calculates the sum total of all square footage
+  # used through out the lifespan of the garden
+  # needs to calculated the max area required within a given timeframe
+
+  # area should be a mostly static value to report the size of the garden
+  
+  # def area
+  #   @plantings.map { |planting| planting.area_needed }.reduce(:+)
+  # end
+
+  def max_area_required(start_time, end_time)
+    # Input - two time objects which gets us to **an array of Planting objects**
+    # Output - Numeric, probably integer representing the square footage required
+
+    # We need to know the peak land usage between March and November of 2022
+
+    # Data - An array of planting objects which are in season **including partial!**
+    # between the start and the end dates
+
+
+    # Thoughts - Time objects at the day level - inclusive? Range features for 
+    # time objects?
+
+
+    # Gather up all the start dates for plantings
+    # which are planted between the start_time and the end time
+    # ** 
+
+    #   For each start date, check the total area required by all in-season
+    #   plants on that particular day
+    #     Helper method area_needed_on_date
+
+    #   The highest value is the maximum area required by that garden
+
+
+
+    # Take the array of plantings, select only those in season between the start and end dates
+    
+    # Create an array of dates on which we will check the area of all in season plants
+    #   Inlude start date argument and the start dates of all in season plants which 
+    #   fall between the start and end date arguments, inclusive
+
+    # Create a hash with Area key and Date values
+    # Return the highest KV pair as a two object array
+
+
+  end
+
+  # sum the areas of the plants which are active on a given day
+  def area_needed_on_date(date)
+  end
+
+  # return an array of plants active on that day
+  def plantings_active(date)
+    # Iterate through the plantings array
+    @plantings.count { |planting| planting.season.include?(date) }
   end
 end
 
-class Harvest
+class Planting
   attr_reader :name, :harvest_date, :num_plants, :area_per_plant
 
   def initialize(name)
@@ -24,9 +90,16 @@ class Harvest
   end
 
   def harvest_date=(time_obj)
-    raise ArgumentError unless time_obj.class == Time
+    raise ArgumentError unless time_obj.class == Date
 
     @harvest_date = time_obj
+  end
+
+  def planting_date
+    # assume @grow_time measured in weeks
+    
+    # should return new Date obj
+    @harvest_date - (@grow_time * 7)
   end
 
   def num_plants=(num)
@@ -36,9 +109,9 @@ class Harvest
   end
 
   def area_per_plant=(num)
-    raise ArgumentError unless num.class == Integer
+    raise ArgumentError unless num.kind_of? Numeric
 
-    @area_per_plant
+    @area_per_plant = num
   end
 
   def area_needed
@@ -46,15 +119,12 @@ class Harvest
   end
 
   def grow_time=(num_weeks)
-    raise ArgumentError unless num_weeks.kind_of? Numeric # TODO look up how to make this Numeric
+    raise ArgumentError unless num_weeks.kind_of? Numeric
 
     @grow_time = num_weeks
   end
 
-  def planting_date
-    weeks_to_seconds = (60 * 60 * 24 * 7)
-    
-    # should return new Time obj
-    @harvest_date - (@grow_time * weeks_to_seconds)
+  def season
+    (planting_date.. harvest_date)
   end
 end
