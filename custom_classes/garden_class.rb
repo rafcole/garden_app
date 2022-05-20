@@ -4,8 +4,7 @@
 require 'Date'
 
 class Garden
-  attr_reader :plantings, :area
-  attr_accessor :name
+  attr_reader :plantings, :area, :name
 
   def initialize(name, area = 0)
     @name = name
@@ -23,6 +22,10 @@ class Garden
     @area = new_val
   end
 
+  def rename(new_name)
+    @name = new_name
+  end
+
   # problem - this calculates the sum total of all square footage
   # used through out the lifespan of the garden
   # needs to calculated the max area required within a given timeframe
@@ -34,7 +37,7 @@ class Garden
   # end
 
   def max_area_required(start_time, end_time)
-    # Input - two time objects which gets us to **an array of Planting objects**
+    # Input - two Date objects which gets us to **an array of Planting objects**
     # Output - Numeric, probably integer representing the square footage required
 
     # We need to know the peak land usage between March and November of 2022
@@ -42,9 +45,6 @@ class Garden
     # Data - An array of planting objects which are in season **including partial!**
     # between the start and the end dates
 
-
-    # Thoughts - Time objects at the day level - inclusive? Range features for 
-    # time objects?
 
 
     # Gather up all the start dates for plantings
@@ -59,7 +59,7 @@ class Garden
 
 
 
-    # Take the array of plantings, select only those in season between the start and end dates
+    # Take the array of plantings, select only those in which are active between the start and end dates
     
     # Create an array of dates on which we will check the area of all in season plants
     #   Inlude start date argument and the start dates of all in season plants which 
@@ -76,17 +76,52 @@ class Garden
   end
 
   # return an array of plants active on that day
-  def plantings_active(date)
-    # Iterate through the plantings array
-    @plantings.count { |planting| planting.season.include?(date) }
+  # def plantings_active(date_or_range)
+  #   if date_or_range.class == range
+  #     # [planting which was already growing and will be harvested in the range,
+  #     # plant which will be planted in this range but won't harvested in the range,
+  #     # planting which neither starts nor ends during the range - totally irrelevant,
+  #     # plant which will be planted before end of range but not harvested before end of range]
+  #   else
+  #     # Iterate through the plantings array
+  #     @plantings.select { |planting| planting.season.include?(date) }
+  #   end
+  # end
+  def plantings_active_in_range(date_range)
+    results = []
+
+    # trim plantings which will be finished before range or won't start until after range
+    candidate_plantings = @plantings.reject do |planting|
+      (date_range.min > planting.harvest_date) || (date_range.max < planting.planting_date)
+    end
+
+    date_range.each do |date|
+      candidate_plantings.each do |planting| 
+        results << planting if planting.active_on?(date) 
+      end
+
+      candidate_plantings.delete_if { |planting| results.include?(planting) }
+    end
+
+    results
+  end
+
+  def plantings_active_on_date(date)
+    @plantings.select { |planting| planting.active_on?(date) }
   end
 end
 
 class Planting
-  attr_reader :name, :harvest_date, :num_plants, :area_per_plant
+  attr_reader :name, :harvest_date, :num_plants, :area_per_plant, :grow_time
 
-  def initialize(name)
+  def initialize(name, harvest_date, grow_time)
     @name = name
+    @harvest_date = harvest_date
+    @grow_time = grow_time
+  end
+
+  def active_on?(date)
+    season.include? date
   end
 
   def harvest_date=(time_obj)
@@ -125,6 +160,7 @@ class Planting
   end
 
   def season
+    # returns range, there's no special range type for Date objs
     (planting_date.. harvest_date)
   end
 end
