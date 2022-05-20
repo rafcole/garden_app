@@ -62,6 +62,58 @@ class GardenClassTests < Minitest::Test
     date = Date.new(2022, 6, 15)
 
     assert_equal 2, @my_garden.plantings_active_on_date(date).size
+
+
+    # Needs tests for non-instance variable value for plantings?
+  end
+
+  def test_area_needed_on_date
+    # make three fully fledged planting objects
+    # with partially overlapping seasons and the following space reqs
+
+    # beans
+    # |---- 10 sq ft-----|
+    # berries
+    #         |--- 20 sq ft --|
+    # Prunes
+    #              |--- 15 sq ft---|
+    # test ^    ^     ^               ^
+    #      10   30    45              0
+
+    # no plantings in garden
+    assert_equal 0, @my_garden.area_needed_on_date(Date.new(2022, 6, 1))
+
+    # test WITH AND WITHOUT instance variable!
+    beans = Planting.new('early beans', Date.new(2022, 6, 14), 2)
+    beans.num_plants = 2
+    beans.area_per_plant = 5
+    @my_garden << beans
+
+    assert_equal 10, @my_garden.area_needed_on_date(Date.new(2022, 6, 1))
+
+    # planting date before range, harvest during range
+    berries = Planting.new('mayjune berries', Date.new(2022, 6, 21), 2)
+    berries.num_plants = 5
+    berries.area_per_plant = 4
+    @my_garden << berries
+
+    assert_equal 30, @my_garden.area_needed_on_date(Date.new(2022, 6, 8))
+
+    # planting date and harvest occurs entirely during range
+    prunes = Planting.new('injune prune', Date.new(2022, 6, 28), 2)
+    prunes.num_plants = 3
+    prunes.area_per_plant = 5
+    @my_garden << prunes
+
+    assert_equal 45, @my_garden.area_needed_on_date(Date.new(2022, 6, 14))
+
+    # after all harvest dates
+    assert_equal 0, @my_garden.area_needed_on_date(Date.new(2022, 12, 31))
+  end
+
+  def test_planting_dates_in_range
+    # looking for an array of date objects
+    # should only include dates which fall in the date_range argument
   end
 end
 

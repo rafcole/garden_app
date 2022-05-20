@@ -37,6 +37,7 @@ class Garden
   # end
 
   def max_area_required(start_time, end_time)
+    time_frame = (start_time.. end_time)
     # Input - two Date objects which gets us to **an array of Planting objects**
     # Output - Numeric, probably integer representing the square footage required
 
@@ -60,33 +61,50 @@ class Garden
 
 
     # Take the array of plantings, select only those in which are active between the start and end dates
+    active_plantings = plantings_active_in_range(time_frame)
     
     # Create an array of dates on which we will check the area of all in season plants
+    test_dates = planting_dates_in_range(active_plantings, time_frame) 
+    test_dates << start_time
     #   Inlude start date argument and the start dates of all in season plants which 
     #   fall between the start and end date arguments, inclusive
+    area_per_date = Hash.new
+
+    test_dates.each do |date|
+      area_required = area_needed_on_date(date, active_plantings)
+      area_per_date[date] => area_required
+    end
+
+    # doesn't account for multiple max area requirements of the same value
+    max_area_required = area_per_date.values.max
+    starting_day_of_max_area = area_per_date.key(max_area_required)
+
+    [max_area_required, starting_day_of_max_area]
 
     # Create a hash with Area key and Date values
     # Return the highest KV pair as a two object array
-
-
   end
 
   # sum the areas of the plants which are active on a given day
-  def area_needed_on_date(date)
+  # test stub written
+  def area_needed_on_date(date, plantings_arr = @plantings)
+    return 0 if (plantings_arr.nil? || plantings_arr.empty?)  
+    
+    #puts plantings_arr
+    candidates = plantings_active_on_date(date, plantings_arr)
+    return 0 if candidates.empty?
+
+    arr_area = candidates.map { |planting| planting.area_needed }
+    arr_area.reduce(:+)
   end
 
-  # return an array of plants active on that day
-  # def plantings_active(date_or_range)
-  #   if date_or_range.class == range
-  #     # [planting which was already growing and will be harvested in the range,
-  #     # plant which will be planted in this range but won't harvested in the range,
-  #     # planting which neither starts nor ends during the range - totally irrelevant,
-  #     # plant which will be planted before end of range but not harvested before end of range]
-  #   else
-  #     # Iterate through the plantings array
-  #     @plantings.select { |planting| planting.season.include?(date) }
-  #   end
-  # end
+  # test stub written
+  def planting_dates_in_range(plantings, date_range)
+    starts_in_range = plantings.select { |planting| date_range.cover?(planting.planting_date) }
+    starts_in_range.map { |planting| planting.planting_date }
+  end
+
+  # test written
   def plantings_active_in_range(date_range)
     results = []
 
@@ -106,8 +124,12 @@ class Garden
     results
   end
 
-  def plantings_active_on_date(date)
-    @plantings.select { |planting| planting.active_on?(date) }
+  # test written
+  def plantings_active_on_date(date, plantings = @plantings)
+    #puts plantings
+    results = plantings.select { |planting| planting.active_on?(date) }
+    #puts "line 136 == #{results.to_s}"
+    results
   end
 end
 
@@ -121,7 +143,7 @@ class Planting
   end
 
   def active_on?(date)
-    season.include? date
+    season.cover? date
   end
 
   def harvest_date=(time_obj)
