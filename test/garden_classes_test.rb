@@ -46,11 +46,15 @@ class PlantingTests < Minitest::Test
   end
 
   def test_season
-    
     @foo.grow_time = 3 # weeks
     @foo.harvest_date = (Date.new(2022, 5, 21))
 
     # assert_include wasn't working 
     assert @foo.season.include?(Date.new(2022, 5, 14))
+    refute @foo.season.include?(Date.new(2022, 12, 31))
+
+    # planting and harvest day inclusive?
+    assert @foo.season.include?(Date.new(2022, 5, 21))
+    assert @foo.season.include?(Date.new(2022, 4, 30))
   end
 end
