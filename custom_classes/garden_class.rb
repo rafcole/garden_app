@@ -36,8 +36,8 @@ class Garden
   #   @plantings.map { |planting| planting.area_needed }.reduce(:+)
   # end
 
-  def max_area_required(start_time, end_time)
-    time_frame = (start_time.. end_time)
+  def max_area_required(time_frame)
+    # time_frame = (start_time.. end_time)
     # Input - two Date objects which gets us to **an array of Planting objects**
     # Output - Numeric, probably integer representing the square footage required
 
@@ -62,10 +62,16 @@ class Garden
 
     # Take the array of plantings, select only those in which are active between the start and end dates
     active_plantings = plantings_active_in_range(time_frame)
+
+
+    # fallow fields? [zero square footage, no timeframe of peak activity]
+    return [0, nil] if active_plantings.empty?
+
+
     
     # Create an array of dates on which we will check the area of all in season plants
-    test_dates = planting_dates_in_range(active_plantings, time_frame) 
-    test_dates << start_time
+    test_dates = planting_dates_in_range(time_frame, active_plantings).keys
+    test_dates << time_frame.min
     #   Inlude start date argument and the start dates of all in season plants which 
     #   fall between the start and end date arguments, inclusive
     area_per_date = Hash.new
@@ -78,13 +84,34 @@ class Garden
     # doesn't account for multiple max area requirements of the same value
     max_area_required = area_per_date.values.max
     starting_day_of_max_area = area_per_date.key(max_area_required)
+    ending_day_of_max_area = next_harvest_date(date, plantings)
 
-    [max_area_required, starting_day_of_max_area]
+    peak_utilization_dates = (starting_day_of_max_area.. ending_day_of_max_area)
+
+    [max_area_required, peak_utilization_dates]
 
     # Create a hash with Area key and Date values
     # Return the highest KV pair as a two object array
   end
 
+
+  def next_harvest_date(date, plantings = @plantings)
+    # takes a starting date, searches through plantings, returns the next subsequent harvest date
+    # Isolate the plantings which are active on 'date'
+    # Do we want to assume that the array of plantings objects has been filtered to any degree?
+
+    # Trip up - does plantings_active_in_range include potential newcomers?
+
+    # Sort the plantings by their harvest date
+    # Return the earliest date object harvest date (minimum val of the sorted plantings?)
+
+    # potentially redundant
+    if plantings == @plantings 
+      plantings = plantings.select { |planting| date <= planting.harvest_date }
+    end
+
+    plantings.map { |planting| planting.harvest_date }.min
+  end
   # sum the areas of the plants which are active on a given day
   # test stub written
   def area_needed_on_date(date, plantings_arr = @plantings)
@@ -99,9 +126,15 @@ class Garden
   end
 
   # test stub written
-  def planting_dates_in_range(plantings, date_range)
+  def planting_dates_in_range(date_range, plantings = @plantings)
     starts_in_range = plantings.select { |planting| date_range.cover?(planting.planting_date) }
-    starts_in_range.map { |planting| planting.planting_date }
+    
+    results = Hash.new
+
+    starts_in_range.each { |planting| results[planting] = planting.planting_date}
+
+    # starts_in_range.map { |planting| planting.planting_date }
+    results
   end
 
   # test written
@@ -143,7 +176,7 @@ class Planting
   end
 
   def active_on?(date)
-    season.cover? date
+    season.include? date
   end
 
   def harvest_date=(time_obj)

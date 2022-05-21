@@ -114,6 +114,89 @@ class GardenClassTests < Minitest::Test
   def test_planting_dates_in_range
     # looking for an array of date objects
     # should only include dates which fall in the date_range argument
+
+    # initialize a set of 
+    # test with no plantings
+    too_early = (Date.new(1999, 01, 01)..Date.new(1999, 12, 31))
+    june = (Date.new(2022, 6, 1).. Date.new(2022, 6, 30))
+    too_late = (Date.new(3000, 01, 01)..Date.new(3000, 12, 31))
+
+    # no plantings loaded in @my_garden
+    assert_equal 0, @my_garden.planting_dates_in_range(too_early).size
+    assert_equal 0, @my_garden.planting_dates_in_range(june).size
+    assert_equal 0, @my_garden.planting_dates_in_range(too_late).size
+
+    # add one planting
+    # check before, inrange, after
+    beans = Planting.new('early beans', Date.new(2022, 6, 14), 1)
+    @my_garden << beans
+
+    assert_equal 0, @my_garden.planting_dates_in_range(too_early).size
+    assert_equal 1, @my_garden.planting_dates_in_range(june).size
+    assert_equal 0, @my_garden.planting_dates_in_range(too_late).size
+
+    berries = Planting.new('mayjune berries', Date.new(2022, 6, 21), 2)
+    @my_garden << berries
+
+    assert_equal 0, @my_garden.planting_dates_in_range(too_early).size
+    assert_equal 2, @my_garden.planting_dates_in_range(june).size
+    assert_equal 0, @my_garden.planting_dates_in_range(too_late).size
+
+    # planting day is in june, harvest day in july
+    prunes = Planting.new('injune prune', Date.new(2022, 7, 1), 2)
+    @my_garden << prunes
+
+    assert_equal 0, @my_garden.planting_dates_in_range(too_early).size
+    assert_equal 3, @my_garden.planting_dates_in_range(june).size
+    assert_equal 0, @my_garden.planting_dates_in_range(too_late).size
+
+    # irrlevant plantings don't impact testing
+    prunes = Planting.new('kashi', Date.new(2022, 8, 1), 2)
+    @my_garden << prunes
+    assert_equal 0, @my_garden.planting_dates_in_range(too_early).size
+    assert_equal 3, @my_garden.planting_dates_in_range(june).size
+    assert_equal 0, @my_garden.planting_dates_in_range(too_late).size
+  end
+
+  def test_max_area_required
+    june = (Date.new(2022, 6, 1).. Date.new(2022, 6, 30))
+
+    assert_equal [0, nil], @my_garden.max_area_required(june)
+
+    # be sure to test such that peak utilization range is day.. same day
+  end
+
+  def test_next_harvest_date
+    # no plantings loaded
+    assert_nil @my_garden.next_harvest_date(Date.new(2000))
+
+    # load one planting
+      # test from before
+        # return harvest date of the planting
+      # test after planting harvest date
+        # should return nil
+    
+    beans = Planting.new('early beans', Date.new(2022, 6, 1), 1)
+    @my_garden << beans
+ 
+    # first successful date return, the harvest bean
+    assert_equal Date.new(2022, 6, 1), @my_garden.next_harvest_date(Date.new(2000))
+
+    berries = Planting.new('mayjune berries', Date.new(2022, 5, 20), 3)
+    @my_garden << berries
+
+    # start we're checking is within growing season of berries
+    assert_equal Date.new(2022, 5, 20), @my_garden.next_harvest_date(Date.new(2022, 5, 14))
+
+    # check a date after the harvest of of the berries but before the harvest of the beans
+    assert_equal Date.new(2022, 6, 1), @my_garden.next_harvest_date(Date.new(2022, 5, 21))
+
+    # what happens when searching for the next harvest date when the search date IS a harvest date?
+    assert_equal Date.new(2022, 5, 20), @my_garden.next_harvest_date(Date.new(2022, 5, 20))
+
+    # way too late
+    assert_nil @my_garden.next_harvest_date(Date.new(2025))
+
   end
 end
 
@@ -163,5 +246,8 @@ class PlantingTests < Minitest::Test
 
     assert @foo.active_on?(Date.new(2022, 5, 14))
     refute @foo.active_on?(Date.new(2022, 6, 01))
+
+    # active on harvest date?
+    assert @foo.active_on?(Date.new(2022, 5, 21))
   end
 end
