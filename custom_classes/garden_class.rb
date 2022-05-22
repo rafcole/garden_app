@@ -35,6 +35,15 @@ class Garden
     @area < max_area
   end
 
+  def active_period
+    return nil if @plantings.empty?
+
+    earliest_planting = @plantings.map { |planting| planting.planting_date }.min 
+    latest_harvest = @plantings.map { |planting| planting.harvest_date }.max
+
+    earliest_planting.. latest_harvest
+  end
+
   # problem - this calculates the sum total of all square footage
   # used through out the lifespan of the garden
   # needs to calculated the max area required within a given timeframe

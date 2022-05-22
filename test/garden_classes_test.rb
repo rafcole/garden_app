@@ -17,6 +17,21 @@ class GardenClassTests < Minitest::Test
     assert_equal 100, @my_garden.area
   end
 
+  def test_active_period
+    # no plantings
+    assert_nil @my_garden.active_period
+
+    # single planting
+    berries = Planting.new('mayjune berries', Date.new(2022, 6, 28), 3)
+    @my_garden << berries
+    assert_equal Date.new(2022, 6, 8).. Date.new(2022, 6, 28), @my_garden.active_period
+
+    # two plantings
+    beans = Planting.new('beans', Date.new(2022, 7, 31), 3)
+    @my_garden << beans
+    assert_equal Date.new(2022, 6, 8).. Date.new(2022, 7, 31), @my_garden.active_period
+  end
+
   def test_rename
     @my_garden.rename("windowsill")
 
