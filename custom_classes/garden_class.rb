@@ -1,5 +1,7 @@
 # does garden class need to inherit from anything? Automatically inherit from basic object?
 # does it know its own name?
+require 'simplecov'
+SimpleCov.start
 
 require 'Date'
 require 'pry'
@@ -11,7 +13,7 @@ class Garden
   def initialize(name, area = 0)
     @name = name
     @plantings = []
-    @area
+    @area = area
   end
 
   def << (new_planting)
@@ -26,6 +28,11 @@ class Garden
 
   def rename(new_name)
     @name = new_name
+  end
+
+  def capacity_exceeded?(time_frame)
+    max_area, max_area_time = max_area_required(time_frame)
+    @area < max_area
   end
 
   # problem - this calculates the sum total of all square footage

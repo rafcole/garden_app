@@ -1,10 +1,44 @@
-require_relative '../custom_classes/garden_class'
 
+require 'simplecov'
+SimpleCov.start
+
+require_relative '../custom_classes/garden_class'
 require "minitest/autorun"
 
 class GardenClassTests < Minitest::Test
   def setup
     @my_garden = Garden.new('backyard')
+  end
+
+  def test_change_area
+    assert_equal 0, @my_garden.area
+    @my_garden.change_area(100)
+
+    assert_equal 100, @my_garden.area
+  end
+
+  def test_rename
+    @my_garden.rename("windowsill")
+
+    assert_equal "windowsill", @my_garden.name
+  end
+
+  def test_capacity_exceeded?
+    @my_garden.change_area(100)
+    june = (Date.new(2022, 6, 1).. Date.new(2022, 6, 30))
+    refute @my_garden.capacity_exceeded?(june)
+
+    berries = Planting.new('mayjune berries', Date.new(2022, 6, 28), 3)
+    berries.num_plants = 5
+    berries.area_per_plant = 4
+    @my_garden << berries
+
+    refute @my_garden.capacity_exceeded?(june)
+
+    berries.num_plants = 20
+    berries.area_per_plant = 10
+
+    assert @my_garden.capacity_exceeded?(june)
   end
 
   def test_initialize
