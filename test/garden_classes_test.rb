@@ -77,22 +77,23 @@ class GardenClassTests < Minitest::Test
     #         |--- 20 sq ft --|
     # Prunes
     #              |--- 15 sq ft---|
-    # test ^    ^     ^               ^
-    #      10   30    45              0
+    # test ^    ^        ^                   ^
+    #      10   30      45 (harvest date)    0
 
     # no plantings in garden
     assert_equal 0, @my_garden.area_needed_on_date(Date.new(2022, 6, 1))
 
     # test WITH AND WITHOUT instance variable!
-    beans = Planting.new('early beans', Date.new(2022, 6, 14), 2)
+    beans = Planting.new('early beans', Date.new(2022, 6, 14), 3)
     beans.num_plants = 2
     beans.area_per_plant = 5
     @my_garden << beans
 
-    assert_equal 10, @my_garden.area_needed_on_date(Date.new(2022, 6, 1))
+    assert_equal 10, @my_garden.area_needed_on_date(Date.new(2022, 6, 14))
+    assert_equal 10, @my_garden.area_needed_on_date(Date.new(2022, 5, 25))
 
     # planting date before range, harvest during range
-    berries = Planting.new('mayjune berries', Date.new(2022, 6, 21), 2)
+    berries = Planting.new('mayjune berries', Date.new(2022, 6, 28), 3)
     berries.num_plants = 5
     berries.area_per_plant = 4
     @my_garden << berries
@@ -100,7 +101,7 @@ class GardenClassTests < Minitest::Test
     assert_equal 30, @my_garden.area_needed_on_date(Date.new(2022, 6, 8))
 
     # planting date and harvest occurs entirely during range
-    prunes = Planting.new('injune prune', Date.new(2022, 6, 28), 2)
+    prunes = Planting.new('injune prune', Date.new(2022, 7, 06), 4)
     prunes.num_plants = 3
     prunes.area_per_plant = 5
     @my_garden << prunes
@@ -161,8 +162,110 @@ class GardenClassTests < Minitest::Test
   def test_max_area_required
     june = (Date.new(2022, 6, 1).. Date.new(2022, 6, 30))
 
+    
+
+    # no plantings loaded
+    #         |____________june____________|
     assert_equal [0, nil], @my_garden.max_area_required(june)
 
+
+    # plantings with no area
+    @my_garden << Planting.new('no-area beans', Date.new(2021, 12, 31), 2)
+    assert_equal [0, nil], @my_garden.max_area_required(june)
+
+    # too early - zero, nil
+    #  |--|
+    #         |____________june____________|
+    beans = Planting.new('early beans', Date.new(2021, 12, 31), 2)
+    beans.num_plants = 2
+    beans.area_per_plant = 5
+    @my_garden << beans
+    assert_equal [0, nil], @my_garden.max_area_required(june)
+
+    # too late - zero, nil
+    #                                          |--|
+    #         |____________june____________|
+    beans.harvest_date = Date.new(2023, 12, 31)
+    assert_equal [0, nil], @my_garden.max_area_required(june)
+  
+
+    # partial overlap, begining of range (10)
+    #      |--10--|
+    #         |____________june____________|
+    beans.harvest_date = Date.new(2022, 6, 7)
+    first_week_of_june = (Date.new(2022, 6, 1).. Date.new(2022, 6, 7))
+    assert_equal [10, first_week_of_june], @my_garden.max_area_required(june)
+
+
+    # partial overlap, end of range (10)
+    #                                  |--10--|
+    #         |____________june____________|
+    beans.harvest_date = Date.new(2022, 7, 7)
+    last_week_of_june = (Date.new(2022, 6, 24).. Date.new(2022, 6, 30))
+    assert_equal [10, last_week_of_june], @my_garden.max_area_required(june)
+
+    # inclusive, second and third week of june (10)
+    #                |--10--|
+    #         |____________june____________|
+    beans.harvest_date = Date.new(2022, 6, 21)
+    second_third_week_june = (Date.new(2022, 6, 8).. Date.new(2022, 6, 21))
+    assert_equal [10, second_third_week_june], @my_garden.max_area_required(june)
+
+    # testing pre adding area to the new planting
+    berries = Planting.new('early beans', Date.new(2022, 6, 21), 2)
+    @my_garden << berries
+
+    assert_equal [10, second_third_week_june], @my_garden.max_area_required(june)
+
+
+    
+
+    # partial and inclusive (20)
+    #      |--10--|
+    #                |---20---|
+    #         |____________june____________|
+
+    beans.harvest_date = Date.new(2022, 6, 7)
+
+    berries.num_plants = 4
+    berries.area_per_plant = 5
+
+    assert_equal [20, second_third_week_june], @my_garden.max_area_required(june)
+
+
+
+    # partial and inclusive which overlap (30)
+    #      |--10--|
+    #           |---20---|
+    #         |____________june____________|
+
+    berries.grow_time = 3
+    assert_equal [30, first_week_of_june], @my_garden.max_area_required(june)
+
+    # inclusive overlaps
+    #            |--10--|
+    #                |---20---|
+    #         |____________june____________|
+
+
+    beans.harvest_date = Date.new(2022, 6, 14)
+    beans.grow_time = 1
+    second_week_of_june = (Date.new(2022, 6, 8).. Date.new(2022, 6, 14))
+
+    assert_equal [30, second_week_of_june], @my_garden.max_area_required(june)
+
+
+    #            |--10--|
+    #                |---20---|
+    #  |--------------25-------------------------|
+    #         |____________june____________|
+
+    corn = Planting.new('corn', Date.new(2022, 9, 1), 15)
+    corn.num_plants = 5
+    corn.area_per_plant = 5
+    @my_garden << corn
+
+    assert_equal [55, second_week_of_june], @my_garden.max_area_required(june)
     # be sure to test such that peak utilization range is day.. same day
   end
 
@@ -196,13 +299,17 @@ class GardenClassTests < Minitest::Test
 
     # way too late
     assert_nil @my_garden.next_harvest_date(Date.new(2025))
-
   end
 end
 
 class PlantingTests < Minitest::Test
   def setup
     @foo = Planting.new('tomatoes', Date.new(2022, 5, 1), 3)
+  end
+
+  def test_season_includes_planting_date
+    assert @foo.season.cover?(@foo.planting_date)
+    assert_equal Date.new(2022, 4, 11), @foo.planting_date
   end
 
   def test_harvest_date_arg
@@ -230,7 +337,7 @@ class PlantingTests < Minitest::Test
 
     # planting and harvest day inclusive?
     assert @foo.season.include?(Date.new(2022, 5, 21))
-    assert @foo.season.include?(Date.new(2022, 4, 30))
+    assert @foo.season.include?(Date.new(2022, 5, 1))
   end
 
   def test_grow_time_arithmetic

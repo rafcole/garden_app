@@ -2,6 +2,8 @@
 # does it know its own name?
 
 require 'Date'
+require 'pry'
+require 'pry-byebug'
 
 class Garden
   attr_reader :plantings, :area, :name
@@ -63,6 +65,9 @@ class Garden
     # Take the array of plantings, select only those in which are active between the start and end dates
     active_plantings = plantings_active_in_range(time_frame)
 
+    # filter out plantings without data on num plants and area per plant
+    active_plantings.select! { |planting| planting.area_needed }
+
 
     # fallow fields? [zero square footage, no timeframe of peak activity]
     return [0, nil] if active_plantings.empty?
@@ -70,7 +75,9 @@ class Garden
 
     
     # Create an array of dates on which we will check the area of all in season plants
-    test_dates = planting_dates_in_range(time_frame, active_plantings).keys
+    test_dates = planting_dates_in_range(time_frame, active_plantings).values
+
+    #binding.pry
     test_dates << time_frame.min
     #   Inlude start date argument and the start dates of all in season plants which 
     #   fall between the start and end date arguments, inclusive
@@ -78,13 +85,13 @@ class Garden
 
     test_dates.each do |date|
       area_required = area_needed_on_date(date, active_plantings)
-      area_per_date[date] => area_required
+      area_per_date[date] = area_required
     end
 
     # doesn't account for multiple max area requirements of the same value
     max_area_required = area_per_date.values.max
     starting_day_of_max_area = area_per_date.key(max_area_required)
-    ending_day_of_max_area = next_harvest_date(date, plantings)
+    ending_day_of_max_area = [next_harvest_date(starting_day_of_max_area, plantings), time_frame.max].min
 
     peak_utilization_dates = (starting_day_of_max_area.. ending_day_of_max_area)
 
@@ -128,10 +135,12 @@ class Garden
   # test stub written
   def planting_dates_in_range(date_range, plantings = @plantings)
     starts_in_range = plantings.select { |planting| date_range.cover?(planting.planting_date) }
+
+    #binding.pry
     
     results = Hash.new
 
-    starts_in_range.each { |planting| results[planting] = planting.planting_date}
+    starts_in_range.each { |planting| results[planting] = planting.planting_date }
 
     # starts_in_range.map { |planting| planting.planting_date }
     results
@@ -189,7 +198,7 @@ class Planting
     # assume @grow_time measured in weeks
     
     # should return new Date obj
-    @harvest_date - (@grow_time * 7)
+    @harvest_date - ((@grow_time * 7) - 1)
   end
 
   def num_plants=(num)
@@ -205,6 +214,7 @@ class Planting
   end
 
   def area_needed
+    return nil unless @num_plants && @area_per_plant
     @num_plants * @area_per_plant
   end
 
