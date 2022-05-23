@@ -39,7 +39,8 @@ def valid_credentials?(user_name, password)
   user_hash = load_user_credentials
 
   if user_hash[user_name]
-    password_from_file = BCrypt::Password.new(user_hash[user_name])
+    puts user_hash.to_s
+    password_from_file = BCrypt::Password.new(user_hash[user_name]["password")
     password_from_file == password
   else
     false
