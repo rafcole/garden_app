@@ -26,21 +26,33 @@ def user_data_path
   end
 end
 
+###########################################
+# def user_data_file_path
+    # user_data_path + user_id.yml
+    # user_data_path + session_id
+# end
+
 def load_user_credentials
   credentials_path = if ENV["RACK_ENV"] == "test"
     File.expand_path("../test/user_data/all_users.yml", __FILE__)
   else
-    File.expand_path("../user_datea/all_users.yml", __FILE__)
+    File.expand_path("../user_data/all_users.yml", __FILE__)
   end
   YAML.load_file(credentials_path)
+end
+
+def require_signed_in_user
+  if session[:user].nil? 
+    session[:message] = "You must be signed in to do that"
+    redirect "/"
+  end
 end
 
 def valid_credentials?(user_name, password)
   user_hash = load_user_credentials
 
   if user_hash[user_name]
-    puts user_hash.to_s
-    password_from_file = BCrypt::Password.new(user_hash[user_name]["password")
+    password_from_file = BCrypt::Password.new(user_hash[user_name]["password"])
     password_from_file == password
   else
     false
@@ -49,6 +61,7 @@ end
 
 # homepage
 get "/" do
+  puts session["session_id"]
   erb :home
 end
 
@@ -62,7 +75,7 @@ get "/signin" do
   erb :signin
 end
 
-# sign in post
+# submit sign in data
 post "/signin" do
   user_name = params["username"]
   password = params["password"]
@@ -78,13 +91,7 @@ post "/signin" do
   end
 end
 
-def require_signed_in_user
-  if session[:user].nil? 
-    session[:message] = "You must be signed in to do that"
-    redirect "/"
-  end
-end
-
+# signout
 get "/signout" do
   require_signed_in_user
   # require signed in user
@@ -105,6 +112,85 @@ end
 
 # add/remove garden page
 get "/add-garden" do
+  # TODO - new users need new user data yamls, relying on hand added usersand data at the moment
+  # open users file
+  # 
+  erb :add_garden
+end
+
+def load_user_file
+  # do routing for logged in vs not logged in users
+  # not signed in site visitor
+  #   /user_data/visitors/"#{session_id}.yml
+  # signed in user
+  #   all_users.yaml["username as string"]["id"]
+  #   /user_data/"#{user_id}".yaml
+  if session[:user]
+    #user_id = load_user_credentials[session[:user]]['id']
+    puts "user_id == #{user_id}"
+    YAML.load_file(user_data_path + "/#{user_id}.yaml")
+  else
+    "stuff for session id blah blah"
+    path = user_data_path + "/sessions/#{user_id}.yaml"
+    YAML.load_file(path)
+  end
+end
+
+def user_id
+  # if a user is logged in, it's the simple id
+  # otherwise it's the session id
+  if session[:user]
+    load_user_credentials[session[:user]]['id']
+  else
+    session["session_id"]
+  end
+end
+
+def save_to_user_file(hash_for_yaml)
+  path = if session[:user]
+           path = user_data_path + "/#{user_id}.yaml"
+         else
+           path = user_data_path + "/sessions/#{user_id}.yaml"
+         end
+
+  contents = hash_for_yaml.to_yaml
+  File.open(File.join(path), "w") do |file|
+    file.write(contents)
+  end
+end
+
+def valid_garden_input?(name_str, area_str)
+  return false if name_str.strip.size == 0
+
+  area_str.strip!
+  if area_str.size > 0
+    return false unless area_str.to_i.to_s == area_str
+  end
+
+  true
+end
+
+post "/add-garden" do
+  puts params
+  # validate input params
+    # error and redirect
+  if valid_garden_input?(params["garden_name"], params["area"])
+    #success
+    garden_name = params["garden_name"]
+    area = params["area"].strip.to_i
+    # add the garden
+    user_data = load_user_file
+    user_data["gardens"] << Garden.new(garden_name, area)
+
+    save_to_user_file(user_data)
+    # display message
+    session[:message] = "Garden added"
+    # redirect to homepage
+    redirect "/"
+  else
+    session[:message] = "Invalid input"
+    erb :add_garden
+  end
 end
 
 
