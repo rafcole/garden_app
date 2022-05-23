@@ -33,6 +33,10 @@ class GardenTest < Minitest::Test
     last_request.env["rack.session"]
   end
 
+  def admin_session
+    { "rack.session" => { user: 'admin' }}
+  end
+
   def test_homepage_keystones_signed_out
     # get the homepage
     get "/"
@@ -80,6 +84,19 @@ class GardenTest < Minitest::Test
     assert_equal 422, last_response.status
   end
 
+  def test_sign_out 
+    get "/signout", {}, admin_session
+    assert_nil session[:user]
+    assert_equal "You have signed out successfully", session[:message]
+    assert_equal 302, last_response.status
+  end
+
+  def test_sign_out_not_signed_in
+    get "/signout"
+
+    assert_equal "You must be signed in to do that", session[:message]
+    assert_equal 302, last_response.status
+  end
 
 
   # def test_garden_setter_methods

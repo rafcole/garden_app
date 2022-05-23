@@ -35,6 +35,17 @@ def load_user_credentials
   YAML.load_file(credentials_path)
 end
 
+def valid_credentials?(user_name, password)
+  user_hash = load_user_credentials
+
+  if user_hash[user_name]
+    password_from_file = BCrypt::Password.new(user_hash[user_name])
+    password_from_file == password
+  else
+    false
+  end
+end
+
 # homepage
 get "/" do
   erb :home
@@ -48,17 +59,6 @@ get "/signin" do
   end
 
   erb :signin
-end
-
-def valid_credentials?(user_name, password)
-  user_hash = load_user_credentials
-
-  if user_hash[user_name]
-    password_from_file = BCrypt::Password.new(user_hash[user_name])
-    password_from_file == password
-  else
-    false
-  end
 end
 
 # sign in post
@@ -75,6 +75,21 @@ post "/signin" do
     session[:message] = "log in failed - generic"
     erb :signin
   end
+end
+
+def require_signed_in_user
+  if session[:user].nil? 
+    session[:message] = "You must be signed in to do that"
+    redirect "/"
+  end
+end
+
+get "/signout" do
+  require_signed_in_user
+  # require signed in user
+  session[:user] = nil 
+  session[:message] = "You have signed out successfully"
+  redirect "/"
 end
 
 # sign up
