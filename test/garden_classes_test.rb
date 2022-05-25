@@ -1,4 +1,3 @@
-
 require 'simplecov'
 SimpleCov.start
 
@@ -11,6 +10,7 @@ class GardenClassTests < Minitest::Test
   end
 
   def test_change_area
+    #skip
     assert_equal 0, @my_garden.area
     @my_garden.change_area(100)
 
@@ -33,12 +33,14 @@ class GardenClassTests < Minitest::Test
   end
 
   def test_rename
+    #skip
     @my_garden.rename("windowsill")
 
     assert_equal "windowsill", @my_garden.name
   end
 
   def test_capacity_exceeded?
+    #skip
     @my_garden.change_area(100)
     june = (Date.new(2022, 6, 1).. Date.new(2022, 6, 30))
     refute @my_garden.capacity_exceeded?(june)
@@ -57,6 +59,7 @@ class GardenClassTests < Minitest::Test
   end
 
   def test_initialize
+    #skip
     foo = Garden.new('backyard')
 
     assert_equal 'backyard', foo.name
@@ -64,6 +67,7 @@ class GardenClassTests < Minitest::Test
   end
 
   def test_add_planting
+    #skip
     foo = Garden.new('backyard')
     bar = Planting.new('tomatoes', Date.new(2022, 05, 01), 3)
 
@@ -71,10 +75,17 @@ class GardenClassTests < Minitest::Test
 
     foo << bar
 
-    assert_equal [bar], foo.plantings
+    assert_equal ({ 1 => bar }), foo.plantings
+
+    # repeat check id generation
+    beans = Planting.new('beans', Date.new(2022, 05, 01), 3)
+    foo << beans
+
+    assert_equal ({ 1 => bar, 2 => beans }), foo.plantings
   end
 
   def test_plantings_active_in_range
+    #skip
     # decide on an easy to read date range
       # month of june
     june = (Date.new(2022, 6, 1).. Date.new(2022, 6, 30))
@@ -96,6 +107,7 @@ class GardenClassTests < Minitest::Test
   end
 
   def test_plantings_active_on_date
+    #skip
         # add the following plantings to @my_garden
     # season complete before range
     @my_garden << Planting.new('early beans', Date.new(2021, 12, 31), 2)
@@ -117,6 +129,7 @@ class GardenClassTests < Minitest::Test
   end
 
   def test_area_needed_on_date
+    # skip
     # make three fully fledged planting objects
     # with partially overlapping seasons and the following space reqs
 
@@ -162,6 +175,7 @@ class GardenClassTests < Minitest::Test
   end
 
   def test_planting_dates_in_range
+    # skip
     # looking for an array of date objects
     # should only include dates which fall in the date_range argument
 
@@ -209,6 +223,7 @@ class GardenClassTests < Minitest::Test
   end
 
   def test_max_area_required
+    #skip
     june = (Date.new(2022, 6, 1).. Date.new(2022, 6, 30))
 
     
@@ -319,6 +334,7 @@ class GardenClassTests < Minitest::Test
   end
 
   def test_next_harvest_date
+    #skip
     # no plantings loaded
     assert_nil @my_garden.next_harvest_date(Date.new(2000))
 
@@ -353,23 +369,28 @@ end
 
 class PlantingTests < Minitest::Test
   def setup
+    #skip
     @foo = Planting.new('tomatoes', Date.new(2022, 5, 1), 3)
   end
 
   def test_season_includes_planting_date
+    #skip
     assert @foo.season.cover?(@foo.planting_date)
     assert_equal Date.new(2022, 4, 11), @foo.planting_date
   end
 
   def test_harvest_date_arg
+    #skip
     assert_raises(ArgumentError) { @foo.harvest_date = 'not a TimeObj' }
   end
 
   def test_area_per_plant_arg
+    #skip
     assert_raises(ArgumentError) { @foo.area_per_plant = 'not a Numeric' }
   end
 
   def test_calculate_area_needed
+    #skip
     @foo.num_plants = 5
     @foo.area_per_plant = 2
 
@@ -377,6 +398,7 @@ class PlantingTests < Minitest::Test
   end
 
   def test_season
+    #skip
     @foo.grow_time = 3 # weeks
     @foo.harvest_date = (Date.new(2022, 5, 21))
 
@@ -390,6 +412,7 @@ class PlantingTests < Minitest::Test
   end
 
   def test_grow_time_arithmetic
+    #skip
     @foo.grow_time = 3
     @foo.grow_time -= 1
 
@@ -397,6 +420,7 @@ class PlantingTests < Minitest::Test
   end
 
   def test_active_on?
+    #skip
     @foo.grow_time = 3 # weeks
     @foo.harvest_date = (Date.new(2022, 5, 21))
 
