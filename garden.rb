@@ -5,6 +5,8 @@ require "sinatra"
 require "sinatra/reloader"
 require "tilt/erubis"
 require "bcrypt"
+require "pry"
+#require "pry-byebug"
 
 require_relative 'custom_classes/garden_class'
 
@@ -14,13 +16,13 @@ configure do
   set :session_secret, 'super secret'
 end
 
-# this is where the id_209384.yml files for inidividual users will live
+# this is where the id_209384.yaml files for inidividual users will live
 def user_data_path
   if ENV["RACK_ENV"] == "test"
     File.expand_path("../test/user_data", __FILE__)
-    # all_users.yml
-    # id_23423.yml
-    # id_87837.yml ...
+    # all_users.yaml
+    # id_23423.yaml
+    # id_87837.yaml ...
   else
     File.expand_path("../user_data", __FILE__)
   end
@@ -28,16 +30,16 @@ end
 
 ###########################################
 # def user_data_file_path
-    # user_data_path + user_id.yml
+    # user_data_path + user_id.yaml
     # user_data_path + session_id
 # end
 
 def load_user_credentials
   credentials_path = if ENV["RACK_ENV"] == "test"
-    File.expand_path("../test/user_data/all_users.yml", __FILE__)
-  else
-    File.expand_path("../user_data/all_users.yml", __FILE__)
-  end
+                       File.expand_path("../test/user_data/all_users.yaml", __FILE__)
+                     else
+                       File.expand_path("../user_data/all_users.yaml", __FILE__)
+                     end
   YAML.load_file(credentials_path)
 end
 
@@ -52,8 +54,7 @@ def valid_credentials?(user_name, password)
   user_hash = load_user_credentials
 
   if user_hash[user_name]
-    password_from_file = BCrypt::Password.new(user_hash[user_name]["password"])
-    password_from_file == password
+    user_hash[user_name]["password"] == password
   else
     false
   end
@@ -61,7 +62,7 @@ end
 
 # homepage
 get "/" do
-  puts session["session_id"]
+
   erb :home
 end
 
@@ -79,10 +80,12 @@ end
 post "/signin" do
   user_name = params["username"]
   password = params["password"]
+
   # if the password is correct, allow log in
   if valid_credentials?(user_name, password)
     session[:user] = user_name
-    session[:message] = "Welcome #{params["username"]}"
+    session[:message] = "Welcome #{user_name}"
+
     redirect "/"
   else
     status 422
@@ -111,7 +114,7 @@ post "/signup" do
 end
 
 # add/remove garden page
-get "/add-garden" do
+get "/garden/add" do
   # TODO - new users need new user data yamls, relying on hand added usersand data at the moment
   # open users file
   # 
@@ -121,13 +124,12 @@ end
 def load_user_file
   # do routing for logged in vs not logged in users
   # not signed in site visitor
-  #   /user_data/visitors/"#{session_id}.yml
+  #   /user_data/visitors/"#{session_id}.yaml
   # signed in user
   #   all_users.yaml["username as string"]["id"]
   #   /user_data/"#{user_id}".yaml
   if session[:user]
-    #user_id = load_user_credentials[session[:user]]['id']
-    puts "user_id == #{user_id}"
+
     YAML.load_file(user_data_path + "/#{user_id}.yaml")
   else
     "stuff for session id blah blah"
@@ -135,6 +137,23 @@ def load_user_file
     YAML.load_file(path)
   end
 end
+
+
+def load_all_users_file
+  # need non /session version for non-existent users AND logged in users
+
+  # if session && session[:user]
+  #   #user_id = load_user_credentials[session[:user]]['id']
+    YAML.load_file(user_data_path + "/all_users.yaml")
+  # else
+  #   "stuff for session id blah blah"
+  #   # TODO - no tooling for sessions!
+  #   path = user_data_path + "/sessions/all_users.yaml"
+  #   YAML.load_file(path)
+  #   "hello"
+  # end
+end
+
 
 def user_id
   # if a user is logged in, it's the simple id
@@ -152,7 +171,7 @@ def save_to_user_file(hash_for_yaml)
          else
            path = user_data_path + "/sessions/#{user_id}.yaml"
          end
-
+  
   contents = hash_for_yaml.to_yaml
   File.open(File.join(path), "w") do |file|
     file.write(contents)
@@ -170,17 +189,83 @@ def valid_garden_input?(name_str, area_str)
   true
 end
 
-post "/add-garden" do
-  puts params
+# generate id for hashes containing gardens or plantings
+# should work for user[:gardens] and garden[:plantings] 
+def generate_id(hash)
+    return 1 if hash.nil? || hash.empty?
+
+    hash.keys.max + 1
+end
+
+def generate_user_id
+  highest = load_all_users_file.map do |_k, user_data| 
+    _k == "admin" ? 0 : user_data["id"] 
+  end.max
+
+  highest + 1
+  #highest.nil? ? 1 : highest +1
+end
+
+def create_user(user_name, password)
+  # input - username as string
+  #         password as string
+  # assume pre-validated
+  password = BCrypt::Password::create(password)
+  id = generate_user_id
+
+  all_users_entry = {
+                      "password" => password, 
+                      "id" => id
+                    }
+
+
+  user_file_content = { "gardens" => {}, "time_created" => Time.now }
+
+  # generate user_id by transforming all users into their id, choosing the highest value and incrementing by one
+  # Add user to all_users yaml
+
+  add_new_user_to_all_users(user_name, all_users_entry)
+  create_user_file(id, user_file_content)
+
+  # create a new yaml for the user with their ID
+end
+
+def create_user_file(id, hsh)
+  File.open(File.join(user_data_path + "/#{id}.yaml"), "w") do |file|
+    file.write(hsh.to_yaml)
+  end
+end
+
+def add_new_user_to_all_users(user_name, hsh)
+  all_users = load_all_users_file
+  all_users[user_name] = hsh
+
+  contents = all_users.to_yaml
+  path = user_data_path + "/all_users.yaml"
+
+  File.open(File.join(path), "w") do |file|
+    file.write(contents)
+  end
+end
+
+post "/garden/add" do
   # validate input params
     # error and redirect
+  
   if valid_garden_input?(params["garden_name"], params["area"])
     #success
+    # generate a garden in
+    user_data = load_user_file
+    user_gardens = user_data["gardens"]
+
     garden_name = params["garden_name"]
     area = params["area"].strip.to_i
-    # add the garden
-    user_data = load_user_file
-    user_data["gardens"] << Garden.new(garden_name, area)
+    id = generate_id(user_gardens)
+
+    new_garden = Garden.new(garden_name, id, area)
+    
+    # switched to hash
+    user_gardens[id] = new_garden
 
     save_to_user_file(user_data)
     # display message
@@ -193,12 +278,70 @@ post "/add-garden" do
   end
 end
 
-
-get "/edit-garden" do
-  erb :edit_gardens
+# edit garden properties ############# TODO waiting for forms
+get "/garden/:id/edit" do
+  # form with
+    # name
+      # prepopulate
+    # area
+      # prepopulate
+  # also a delete button
+  
+  erb :edit_garden
 end
 
 # submit data to add/remove garden
-post "/edit-garden" do
-  erb :edit_gardens
+post "/garden/:id/edit" do
+  if validate teh inputs is true
+    # edit the file
+    session[:message] = "Your garden has been updated"
+    redirect "/"
+  else
+    status 422
+    session[:message] = "a validation error, probably"
+    erb :edit_garden
+  end
+end
+
+
+# delete a garden
+post "/garden/:id/delete" do
+end
+
+
+################## 5/24 goal
+
+# add a new planting to a garden
+post "garden/:id/plantings/add" do |garden_id|
+  # get the users file
+  user_data = load_user_file
+  # navigate to the correct Garden Obj via garden_id
+  garden_id = garden_id.to_i
+  garden = user_data[:gardens][garden_id]
+  # create a new plantings obj with the params
+  name = params["name"]
+  harvest_date = Date.new(params["h_year"], params["h_month"], params["h_day"])
+  grow_time = params["grow_time"].to_i
+
+  new_planting = Planting.new(name, harvest_date, grow_time)
+  # create a new planting ID from the garden hash
+  id = generate_id(garden[:plantings])
+  # add kv pair of id:planting obj to the Garden obj
+
+    # id is integer or symbol?
+  garden[id] = new_planting
+  # save the data
+  save_to_user_file(user_data)
+  # create a success msg
+  session[:message] = "Added new planting to garden"
+  # redirect to homepage
+  redirect "/"
+end
+
+# edit the parameters of a planting
+post "garden/:id/plantings/:id/edit" do
+end
+
+# delete a planting
+post "garden/:id/plantings/:id/delete" do
 end
