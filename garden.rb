@@ -328,6 +328,7 @@ end
 
 # add a new planting to a garden
 post "/garden/:id/plantings/add" do |garden_id|
+  #puts "/n\/add post/n"
   user_data = load_user_file
   garden = user_data["gardens"][garden_id.to_i]
   add_planting_to_garden(garden, params)
@@ -347,28 +348,19 @@ def edit_planting(planting, params)
   planting.grow_time = params["grow_time"].to_i
 end
 # edit the parameters of a planting
-post "garden/:id/plantings/:id/edit" do |garden_id, planting_id|
+post "/garden/:id/plantings/:id/edit" do |garden_id, planting_id|
+  #puts "you never saw me"
   user_data = load_user_file
   garden = user_data["gardens"][garden_id.to_i]
-  planting = garden.plantings[planting_id]
+  planting = garden.plantings[planting_id.to_i]
 
   edit_planting(planting, params)
   # save the data
   save_to_user_file(user_data)
   # create a success msg
-  session[:message] = "Added new planting to garden"
+  session[:message] = "The planting has been edited"
   # redirect to homepage
   redirect "/"
-  # load the users file
-
-  # access the specified planting
-
-  # run the planting accessor methods to push the modifications through
-
-  # save the file
-
-  # confirm with message
-
 end
 
 # delete a planting

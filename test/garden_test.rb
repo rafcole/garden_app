@@ -225,8 +225,7 @@ class GardenAppTest < Minitest::Test
     assert_includes last_response.body, "Invalid input"
   end
 
-
-  def test_add_new_planting
+  def summon_bill_and_his_front_yard_broccoli
     generate_sample_users
 
     # log in as bill
@@ -238,16 +237,17 @@ class GardenAppTest < Minitest::Test
                              h_day: "30", 
                              grow_time: "3"
                             }
-
-    # add a garden
-    #binding.pry
     post "/garden/1/plantings/add", params_for_plantings, sample_user_session
+  end
+
+  def test_add_new_planting
+    summon_bill_and_his_front_yard_broccoli
 
     bills_data = load_user_file
 
     assert_equal "Added new planting to garden", session[:message]
     assert_equal 1, bills_data["gardens"][1].plantings.size
-    assert_equal "broccoli", bills_data["gardens"][1].plantings.values[0].name
+    assert_equal "broccoli", bills_data["gardens"][1].plantings[1].name
     # add a planting
                             
     # double check that bill's file has a planting
@@ -255,10 +255,29 @@ class GardenAppTest < Minitest::Test
   end
 
   def test_edit_planting
+    # create a planting
+    summon_bill_and_his_front_yard_broccoli
 
+    new_planting_specs = { name: "apples",
+                            h_year: "2022", 
+                            h_month: "7", 
+                            h_day: "4", 
+                            grow_time: "10"
+                          }
+    # edit the planting
+    # here we're hardcoding the planting ID
+    post "/garden/1/plantings/1/edit", new_planting_specs, sample_user_session
+   
+    bills_data = load_user_file
+    bills_broccoli = bills_data["gardens"][1].plantings[1]
+    # check the planting
+    assert_equal session[:message], "The planting has been edited"
+    assert bills_broccoli.class == Planting
+    assert_equal "apples", bills_broccoli.name
+    assert_equal Date.new(2022, 7, 4), bills_broccoli.harvest_date
+    assert_equal 10, bills_broccoli.grow_time   
   end
 
-  
 end
 
 class GardenHelperTest < Minitest::Test
