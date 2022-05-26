@@ -163,6 +163,10 @@ class Planting
     season.include? date
   end
 
+  def change_name(new_name)
+    @name = new_name
+  end
+
   def harvest_date=(time_obj)
     raise ArgumentError unless time_obj.class == Date
 

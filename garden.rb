@@ -308,13 +308,10 @@ end
 
 ################## 5/24 goal
 
-# add a new planting to a garden
-post "/garden/:id/plantings/add" do |garden_id|
-  # get the users file
-  user_data = load_user_file
-  # navigate to the correct Garden Obj via garden_id
-  garden_id = garden_id.to_i
-  garden = user_data["gardens"][garden_id]
+def load_garden(id)
+end
+
+def add_planting_to_garden(garden, params)
   # create a new plantings obj with the params
   name = params["name"]
   harvest_date = Date.new(params["h_year"].to_i, params["h_month"].to_i, params["h_day"].to_i)
@@ -327,6 +324,13 @@ post "/garden/:id/plantings/add" do |garden_id|
 
     # id is integer or symbol?
   garden << new_planting
+end
+
+# add a new planting to a garden
+post "/garden/:id/plantings/add" do |garden_id|
+  user_data = load_user_file
+  garden = user_data["gardens"][garden_id.to_i]
+  add_planting_to_garden(garden, params)
   # save the data
   save_to_user_file(user_data)
   # create a success msg
@@ -335,8 +339,26 @@ post "/garden/:id/plantings/add" do |garden_id|
   redirect "/"
 end
 
+def edit_planting(planting, params)
+  planting.harvest_date = Date.new(params["h_year"].to_i, params["h_month"].to_i, params["h_day"].to_i)
+  planting.change_name(params["name"])
+  planting.num_plants = params["num_plants"].to_i
+  planting.area_per_plant = params["area_per_plant"].to_f
+  planting.grow_time = params["grow_time"].to_i
+end
 # edit the parameters of a planting
 post "garden/:id/plantings/:id/edit" do |garden_id, planting_id|
+  user_data = load_user_file
+  garden = user_data["gardens"][garden_id.to_i]
+  planting = garden.plantings[planting_id]
+
+  edit_planting(planting, params)
+  # save the data
+  save_to_user_file(user_data)
+  # create a success msg
+  session[:message] = "Added new planting to garden"
+  # redirect to homepage
+  redirect "/"
   # load the users file
 
   # access the specified planting
@@ -346,7 +368,7 @@ post "garden/:id/plantings/:id/edit" do |garden_id, planting_id|
   # save the file
 
   # confirm with message
-  
+
 end
 
 # delete a planting
