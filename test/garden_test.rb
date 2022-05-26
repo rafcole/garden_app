@@ -263,6 +263,8 @@ class GardenAppTest < Minitest::Test
                             h_month: "7", 
                             h_day: "4", 
                             grow_time: "10"
+                            # area per plant
+                            # number of plants
                           }
     # edit the planting
     # here we're hardcoding the planting ID
@@ -278,6 +280,30 @@ class GardenAppTest < Minitest::Test
     assert_equal 10, bills_broccoli.grow_time   
   end
 
+  def test_delete_planting
+    summon_bill_and_his_front_yard_broccoli
+
+    post "/garden/1/plantings/1/delete", sample_user_session
+
+    bills_data = load_user_file
+    assert_empty bills_data["gardens"][1].plantings
+    assert_equal session[:message], "The planting has been deleted"
+  end
+
+  def test_delete_garden
+    summon_bill_and_his_front_yard_broccoli
+
+    # add another garden, just to check
+    bills_data = load_user_file
+    new_garden = { "garden_name" => "mint", "area" => "300" }
+    add_garden(bills_data, new_garden)
+
+    post "/garden/1/delete", sample_user_session
+
+    bills_data = load_user_file
+    assert_equal 1, bills_data["gardens"].size
+    assert_equal session[:message], "The garden has been deleted"
+  end
 end
 
 class GardenHelperTest < Minitest::Test
@@ -288,5 +314,6 @@ class GardenHelperTest < Minitest::Test
                       }
     
     assert_equal 4, generate_id(fake_user_hash)
+    
   end
 end

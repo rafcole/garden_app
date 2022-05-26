@@ -245,24 +245,27 @@ def add_new_user_to_all_users(user_name, hsh)
   end
 end
 
-post "/garden/add" do
-  # validate input params
-    # error and redirect
+def add_garden(user_data, params)
+  user_gardens = user_data["gardens"]
+
+  garden_name = params["garden_name"]
+  area = params["area"].strip.to_i
+  id = generate_id(user_gardens)
+
+  new_garden = Garden.new(garden_name, area)
   
+  # switched to hash
+  user_gardens[id] = new_garden
+end
+
+# add a new garden
+post "/garden/add" do
   if valid_garden_input?(params["garden_name"], params["area"])
     #success
     # generate a garden in
     user_data = load_user_file
-    user_gardens = user_data["gardens"]
 
-    garden_name = params["garden_name"]
-    area = params["area"].strip.to_i
-    id = generate_id(user_gardens)
-
-    new_garden = Garden.new(garden_name, area)
-    
-    # switched to hash
-    user_gardens[id] = new_garden
+    add_garden(user_data, params)
 
     save_to_user_file(user_data)
     # display message
@@ -300,14 +303,21 @@ post "/garden/:id/edit" do
   end
 end
 
-
 # delete a garden
-post "/garden/:id/delete" do
+post "/garden/:id/delete" do |id|
+  user_data = load_user_file
+  garden_id = garden_id.to_i
+
+  # load the file
+  user_data["gardens"].delete(garden_id)
+  # delete the planting
+  session[:message] = "The garden has been deleted"
+  # save the file
+  save_to_user_file(user_data)
+  redirect "/"
 end
 
-
 ################## 5/24 goal
-
 def load_garden(id)
 end
 
@@ -347,9 +357,10 @@ def edit_planting(planting, params)
   planting.area_per_plant = params["area_per_plant"].to_f
   planting.grow_time = params["grow_time"].to_i
 end
+
 # edit the parameters of a planting
 post "/garden/:id/plantings/:id/edit" do |garden_id, planting_id|
-  #puts "you never saw me"
+
   user_data = load_user_file
   garden = user_data["gardens"][garden_id.to_i]
   planting = garden.plantings[planting_id.to_i]
@@ -364,5 +375,15 @@ post "/garden/:id/plantings/:id/edit" do |garden_id, planting_id|
 end
 
 # delete a planting
-post "garden/:id/plantings/:id/delete" do
+post "/garden/:id/plantings/:id/delete" do |garden_id, planting_id|
+  user_data = load_user_file
+  garden_id = garden_id.to_i
+  planting_id = planting_id.to_i
+  # load the file
+  user_data["gardens"][garden_id].plantings.delete(planting_id)
+  # delete the planting
+  session[:message] = "The planting has been deleted"
+  # save the file
+  save_to_user_file(user_data)
+  redirect "/"
 end
