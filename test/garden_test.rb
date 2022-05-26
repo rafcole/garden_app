@@ -1,14 +1,16 @@
 ENV["RACK_ENV"] = "test"
 
+require 'simplecov'
+SimpleCov.start
+
 require "fileutils"
 
 require "minitest/autorun"
 require "rack/test"
 
 require_relative "../garden"
-#require_relative "../garden_class"
 
-class GardenTest < Minitest::Test
+class GardenAppTest < Minitest::Test
 
   include Rack::Test::Methods
 
@@ -38,35 +40,41 @@ class GardenTest < Minitest::Test
   end
 
   # def generate_sample_users
-  #   file_content = {
-  #                   "admin" => nil,
-  #                   "bill" => {
-  #                     "password" => "$2a$12$vW.uJZvB7pztOuvnsHCLeOg.wDLhgA1ayzWCGmwmJ1cV1q7OkJ5ay",
-  #                     "id" => 2
-  #                   }
-  #   }
-  #   path = user_data_path + "/all_users.yaml"
-  #   file_content = file_content.to_yaml
+  #   #binding.pry
+  #   name = "bill"
+  #   password = "billspassword"
 
-  #   File.open(File.join(path), "w") do |file|
-  #     file.write(file_content)
-  #   end
+  #   create_user(name, password)
+ 
+  #   name = "sonia"
+  #   password = "soniaspassword"
+
+  #   create_user(name, password)
   # end
 
   def generate_sample_users
-    #binding.pry
-    name = "bill"
-    password = "billspassword"
+    hsh = {
+            "bill" => {
+                        "password" => "$2a$12$V/nDenXQ0XOo0q5zch1yv.xVk4ifOrC6HefWog5fEEXEb0M.80Zju",
+                        "id" => "1"
+                       },
+            "sonia" => {
+                        "password" => "$2a$12$wvMhlRbWyeH2tbn9/UCzgeclBmPkPsaYMZgMR2ueStrLcQjcErqNO",
+                        "id" => "2"
+                        }
+           }
+    
+    hsh.each do |_user_name, data|
+      create_user_file(data["id"], user_file_content_template)
+    end
 
-    create_user(name, password)
- 
-    name = "sonia"
-    password = "soniaspassword"
-
-    create_user(name, password)
+    File.open(user_data_path + "/all_users.yaml", "w") do |file|
+      file.write(hsh.to_yaml)
+    end
   end
 
   def test_create_user
+    generate_sample_users
     create_user("bob", "plzhash")
 
     assert_includes load_all_users_file.keys, "bob"
@@ -90,6 +98,14 @@ class GardenTest < Minitest::Test
   def teardown
     # delete contents of /test/users
     # not deleting all_users.yaml because it's a useful diagnostic
+
+    clear_user_data
+  end
+
+  def clear_user_data
+    Dir.each_child("./test/user_data") do |dir_content|
+      File.delete("./test/user_data/" + dir_content) unless (dir_content == "sessions" || dir_content == "all_users.yaml")
+    end
   end
 
   def session
@@ -132,26 +148,38 @@ class GardenTest < Minitest::Test
     assert_includes last_response.body, %q(<button type='submit')
   end
 
+  def test_sign_in_already_signed_in
+    get "/signin", {}, admin_session
+
+    assert_equal "You are currently signed in as admin. <a href=/signout> Click here to signout</a>", session[:message]
+  end
 
   def test_log_in_valid_credentials 
     generate_sample_users  
     #skip
-    post "/signin", { username: 'sonia', password: 'soniaspassword' }
+   # binding.pry
+    post "/signin", username: 'sonia', password: 'soniaspassword'
 
     assert_equal 'sonia', session[:user]
     assert_equal "Welcome sonia", session[:message] 
     assert_equal 302, last_response.status
+
+    create_user("richard", "madp8nter")
+    post "/signin", username: "richard", password: "madp8nter"
+
+    assert_equal 'richard', session[:user]
   end
 
   def test_log_in_invalid_password
     #skip
-    post "/signin", { username: 'admin', password: 'wrong' }
+    post "/signin", { username: 'sonia', password: 'wrong' }
     assert_includes last_response.body, "log in failed - generic"
     assert_nil session[:user]
     assert_equal 422, last_response.status
   end
 
   def test_log_in_invalid_username
+    generate_sample_users
     #skip
     post "/signin", { username: 'wrong', password: 'wrong' }
     assert_includes last_response.body, "log in failed - generic"
@@ -181,9 +209,65 @@ class GardenTest < Minitest::Test
     #skip
     post "/garden/add", { garden_name: "bills front yard", area:"200" }, sample_user_session
   
+    bills_data = load_user_file
+
+    assert_equal Garden, bills_data["gardens"][1].class
+    assert_equal "bills front yard", bills_data["gardens"][1].name
+
     assert_equal "Garden added", session[:message]
   end
+  
+  def test_add_new_garden_invalid_input
+    generate_sample_users
+    #skip
+    post "/garden/add", { garden_name: "bills front yard", area:"4ever" }, sample_user_session
+  
+    assert_includes last_response.body, "Invalid input"
+  end
+
 
   def test_add_new_planting
+    generate_sample_users
+
+    # log in as bill
+    post "/garden/add", { garden_name: "bills front yard", area:"100" }, sample_user_session
+
+    params_for_plantings = { name: "broccoli",
+                             h_year: "2022", 
+                             h_month: "6", 
+                             h_day: "30", 
+                             grow_time: "3"
+                            }
+
+    # add a garden
+    #binding.pry
+    post "/garden/1/plantings/add", params_for_plantings, sample_user_session
+
+    bills_data = load_user_file
+
+    assert_equal "Added new planting to garden", session[:message]
+    assert_equal 1, bills_data["gardens"][1].plantings.size
+    assert_equal "broccoli", bills_data["gardens"][1].plantings.values[0].name
+    # add a planting
+                            
+    # double check that bill's file has a planting
+
+  end
+
+  def test_edit_planting
+
+  end
+
+  
+end
+
+class GardenHelperTest < Minitest::Test
+  def test_generate_id
+    fake_user_hash = { 1 => 'user1',
+                       2 => 'user2',
+                       3 => 'user3'
+                      }
+    
+    assert_equal 4, generate_id(fake_user_hash)
   end
 end

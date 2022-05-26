@@ -54,7 +54,7 @@ def valid_credentials?(user_name, password)
   user_hash = load_user_credentials
 
   if user_hash[user_name]
-    user_hash[user_name]["password"] == password
+    BCrypt::Password.new(user_hash[user_name]["password"]) == password
   else
     false
   end
@@ -82,6 +82,7 @@ post "/signin" do
   password = params["password"]
 
   # if the password is correct, allow log in
+  #binding.pry
   if valid_credentials?(user_name, password)
     session[:user] = user_name
     session[:message] = "Welcome #{user_name}"
@@ -199,17 +200,21 @@ end
 
 def generate_user_id
   highest = load_all_users_file.map do |_k, user_data| 
-    _k == "admin" ? 0 : user_data["id"] 
+    _k == "admin" ? 0 : user_data["id"].to_i 
   end.max
 
   highest + 1
   #highest.nil? ? 1 : highest +1
 end
 
+def user_file_content_template
+  { "gardens" => {}, "time_created" => Time.now }
+end
+
 def create_user(user_name, password)
-  # input - username as string
-  #         password as string
-  # assume pre-validated
+  # creates new entry in user_data/all_users.yaml
+  # creates new file  in user_data/##id.yaml
+  # assume pre-validated credentials
   password = BCrypt::Password::create(password)
   id = generate_user_id
 
@@ -218,16 +223,8 @@ def create_user(user_name, password)
                       "id" => id
                     }
 
-
-  user_file_content = { "gardens" => {}, "time_created" => Time.now }
-
-  # generate user_id by transforming all users into their id, choosing the highest value and incrementing by one
-  # Add user to all_users yaml
-
   add_new_user_to_all_users(user_name, all_users_entry)
-  create_user_file(id, user_file_content)
-
-  # create a new yaml for the user with their ID
+  create_user_file(id, user_file_content_template)
 end
 
 def create_user_file(id, hsh)
@@ -262,7 +259,7 @@ post "/garden/add" do
     area = params["area"].strip.to_i
     id = generate_id(user_gardens)
 
-    new_garden = Garden.new(garden_name, id, area)
+    new_garden = Garden.new(garden_name, area)
     
     # switched to hash
     user_gardens[id] = new_garden
@@ -312,24 +309,24 @@ end
 ################## 5/24 goal
 
 # add a new planting to a garden
-post "garden/:id/plantings/add" do |garden_id|
+post "/garden/:id/plantings/add" do |garden_id|
   # get the users file
   user_data = load_user_file
   # navigate to the correct Garden Obj via garden_id
   garden_id = garden_id.to_i
-  garden = user_data[:gardens][garden_id]
+  garden = user_data["gardens"][garden_id]
   # create a new plantings obj with the params
   name = params["name"]
-  harvest_date = Date.new(params["h_year"], params["h_month"], params["h_day"])
+  harvest_date = Date.new(params["h_year"].to_i, params["h_month"].to_i, params["h_day"].to_i)
   grow_time = params["grow_time"].to_i
 
   new_planting = Planting.new(name, harvest_date, grow_time)
   # create a new planting ID from the garden hash
-  id = generate_id(garden[:plantings])
+  id = generate_id(garden.plantings)
   # add kv pair of id:planting obj to the Garden obj
 
     # id is integer or symbol?
-  garden[id] = new_planting
+  garden << new_planting
   # save the data
   save_to_user_file(user_data)
   # create a success msg
@@ -339,7 +336,17 @@ post "garden/:id/plantings/add" do |garden_id|
 end
 
 # edit the parameters of a planting
-post "garden/:id/plantings/:id/edit" do
+post "garden/:id/plantings/:id/edit" do |garden_id, planting_id|
+  # load the users file
+
+  # access the specified planting
+
+  # run the planting accessor methods to push the modifications through
+
+  # save the file
+
+  # confirm with message
+  
 end
 
 # delete a planting
