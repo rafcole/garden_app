@@ -254,7 +254,7 @@ class GardenAppTest < Minitest::Test
 
   end
 
-  def test_edit_planting
+  def test_planting_edit
     # create a planting
     summon_bill_and_his_front_yard_broccoli
 
@@ -280,7 +280,27 @@ class GardenAppTest < Minitest::Test
     assert_equal 10, bills_broccoli.grow_time   
   end
 
-  def test_delete_planting
+  def test_garden_edit
+    summon_bill_and_his_front_yard_broccoli
+
+    new_garden_specs = { name: "windowsill",
+                         area: "321"
+                        }
+
+    post "/garden/1/edit", new_garden_specs, sample_user_session
+    
+    bills_data = load_user_file
+
+    assert_equal bills_data["gardens"][1].name, "windowsill"
+    assert_equal bills_data["gardens"][1].area, 321
+
+    assert_equal session[:message], "Your garden has been updated"
+  end
+
+  def test_garden_edit_invalid_input
+  end
+
+  def test_planting_delete
     summon_bill_and_his_front_yard_broccoli
 
     post "/garden/1/plantings/1/delete", sample_user_session
@@ -290,7 +310,7 @@ class GardenAppTest < Minitest::Test
     assert_equal session[:message], "The planting has been deleted"
   end
 
-  def test_delete_garden
+  def test_garden_delete
     summon_bill_and_his_front_yard_broccoli
 
     # add another garden, just to check

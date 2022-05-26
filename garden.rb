@@ -291,14 +291,19 @@ get "/garden/:id/edit" do
 end
 
 # submit data to add/remove garden
-post "/garden/:id/edit" do
-  if validate teh inputs is true
+post "/garden/:id/edit" do |garden_id|
+  if valid_garden_input?(params["name"], params["area"])
     # edit the file
+    user_data = load_user_file
+    garden = user_data["gardens"][garden_id.to_i]
+    garden.rename(params["name"])
+    garden.change_area(params["area"].to_i)
     session[:message] = "Your garden has been updated"
+    save_to_user_file(user_data)
     redirect "/"
   else
     status 422
-    session[:message] = "a validation error, probably"
+    session[:message] = "Invalid input, the garden has not been edited"
     erb :edit_garden
   end
 end
