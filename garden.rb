@@ -162,6 +162,17 @@ def valid_credentials?(user_name, password)
   end
 end
 
+def valid_new_username?(user_name)
+  #binding.pry
+  !(/\W+/ =~ user_name)
+end
+
+# checking for uppercase, lowercase, special chars and min length 10
+def valid_new_password?(password_str)
+  # regex with look aheads from https://stackoverflow.com/questions/11992544/validating-password-using-regex
+  /^.*(?=.{10,})(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).*$/ =~ password_str
+end
+
 ######## GARDEN HELPERS
 def add_garden(user_data, params)
   user_gardens = user_data["gardens"]
@@ -265,13 +276,41 @@ get "/signout" do
   redirect "/"
 end
 
-# sign up
+# new user sign up
 get "/signup" do
   erb :signup
 end
 
 # submit sign up
 post "/signup" do
+  @username = params["username"]
+  @password = params["password"] # in retrospect this doesn't need to be an instance variable
+
+  # we'll be bypassing all of this validation with create_user methods
+  # not sure how all of that ties in
+
+
+  if @password != params["confirm_password"]
+    session[:message] = "The entered password and confirmation passwords do not match"
+  elsif load_all_users_file.key?(@username)
+    session[:message] = "The requested username is unavaliable"
+  elsif !valid_new_username?(@username)
+    session[:message] = "The entered username is not valid"
+  elsif !valid_new_password?(@password)
+    session[:message] = "The entered password does not meet the password requirements"
+  else
+    create_user(@username, @password)
+    session[:message] = "Signup successful, welcome #{@username}"
+    session[:user] = @username
+    redirect "/"
+  end
+  # check that password matches confirmation password
+  erb :signup
+
+  # not relevant for signup, this only matters for an edit password feature
+  # do not do, move on
+    # check that new password doesn't match current password
+
 
 end
 

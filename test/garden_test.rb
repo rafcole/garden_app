@@ -40,7 +40,7 @@ class GardenAppTest < Minitest::Test
       File.delete("./test/user_data/" + dir_content) unless (dir_content == "sessions" || dir_content == "all_users.yaml")
     end
   end
-  
+
   def create_all_users_file
     hsh = { "admin" => { "password" => ''} }
     File.open(File.join(user_data_path + "/all_users.yaml"), "w") do |file|
@@ -77,8 +77,26 @@ class GardenAppTest < Minitest::Test
     { "rack.session" => { user: 'admin' }}
   end
 
+  ############ bill is our test user workhorse
+
+  # log bill in
   def sample_user_session
     { "rack.session" => { user: 'bill' }}
+  end
+
+  def summon_bill_and_his_front_yard_broccoli
+    generate_sample_users
+
+    # log in as bill
+    post "/garden/add", { garden_name: "bills front yard", area:"100" }, sample_user_session
+
+    params_for_plantings = { name: "broccoli",
+                             h_year: "2022", 
+                             h_month: "6", 
+                             h_day: "30", 
+                             grow_time: "3"
+                            }
+    post "/garden/1/plantings/add", params_for_plantings, sample_user_session
   end
 
   ################## Tests #####################
@@ -137,6 +155,42 @@ class GardenAppTest < Minitest::Test
     get "/signin", {}, admin_session
 
     assert_equal "You are currently signed in as admin. <a href=/signout> Click here to signout</a>", session[:message]
+  end
+
+  def test_sign_up_valid_input
+    form_input = { username: "VeryValid", password: "Match11!!!", confirm_password: "Match11!!!" }
+    post "/signup", form_input
+
+    assert_equal session[:message], "Signup successful, welcome VeryValid"
+  end
+
+  def test_sign_up_existing_username
+    generate_sample_users
+    form_input = { username: "bill", password: "Match1!!!", confirm_password: "Match1!!!" }
+    post "/signup", form_input
+
+    assert_includes last_response.body, "The requested username is unavaliable"
+  end
+
+  def test_sign_up_invalid_username
+    form_input = { username: "Not      Valid", password: "Match1!!!", confirm_password: "Match1!!!" }
+    post "/signup", form_input
+
+    assert_includes last_response.body, "The entered username is not valid"
+  end
+
+  def test_sign_up_password_invalid
+    form_input = { username: "Valid", password: "not_valid", confirm_password: "not_valid" }
+    post "/signup", form_input
+
+    assert_includes last_response.body, "The entered password does not meet the password requirements"
+  end
+
+  def test_sign_up_password_not_matching
+    form_input = { username: "Valid", password: "Match1!!!", confirm_password: "not_matching" }
+    post "/signup", form_input
+
+    assert_includes last_response.body, "The entered password and confirmation passwords do not match"
   end
 
   def test_log_in_valid_credentials 
@@ -208,21 +262,6 @@ class GardenAppTest < Minitest::Test
     post "/garden/add", { garden_name: "bills front yard", area:"4ever" }, sample_user_session
   
     assert_includes last_response.body, "Invalid input"
-  end
-
-  def summon_bill_and_his_front_yard_broccoli
-    generate_sample_users
-
-    # log in as bill
-    post "/garden/add", { garden_name: "bills front yard", area:"100" }, sample_user_session
-
-    params_for_plantings = { name: "broccoli",
-                             h_year: "2022", 
-                             h_month: "6", 
-                             h_day: "30", 
-                             grow_time: "3"
-                            }
-    post "/garden/1/plantings/add", params_for_plantings, sample_user_session
   end
 
   def test_add_new_planting
