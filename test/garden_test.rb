@@ -19,10 +19,6 @@ class GardenAppTest < Minitest::Test
     Sinatra::Application
   end
 
-  # access the session
-
-  # logged in user session - was admin session
-
   def setup
     FileUtils.mkdir_p(user_data_path)
 
@@ -32,25 +28,25 @@ class GardenAppTest < Minitest::Test
     #generate_sample_users
   end
 
+  def teardown
+    # delete contents of /test/users
+    # not deleting all_users.yaml because it's a useful diagnostic
+
+    clear_user_data_dir
+  end
+
+  def clear_user_data_dir
+    Dir.each_child("./test/user_data") do |dir_content|
+      File.delete("./test/user_data/" + dir_content) unless (dir_content == "sessions" || dir_content == "all_users.yaml")
+    end
+  end
+  
   def create_all_users_file
     hsh = { "admin" => { "password" => ''} }
     File.open(File.join(user_data_path + "/all_users.yaml"), "w") do |file|
       file.write(hsh.to_yaml)
     end
   end
-
-  # def generate_sample_users
-  #   #binding.pry
-  #   name = "bill"
-  #   password = "billspassword"
-
-  #   create_user(name, password)
- 
-  #   name = "sonia"
-  #   password = "soniaspassword"
-
-  #   create_user(name, password)
-  # end
 
   def generate_sample_users
     hsh = {
@@ -73,6 +69,20 @@ class GardenAppTest < Minitest::Test
     end
   end
 
+  def session
+    last_request.env["rack.session"]
+  end
+
+  def admin_session
+    { "rack.session" => { user: 'admin' }}
+  end
+
+  def sample_user_session
+    { "rack.session" => { user: 'bill' }}
+  end
+
+  ################## Tests #####################
+
   def test_create_user
     generate_sample_users
     create_user("bob", "plzhash")
@@ -93,31 +103,6 @@ class GardenAppTest < Minitest::Test
     # access the user id via user name in all_users.yaml
     # check the contents of user gardens and make sure the garden
     # in there is the same garden object created earlier
-  end
-
-  def teardown
-    # delete contents of /test/users
-    # not deleting all_users.yaml because it's a useful diagnostic
-
-    clear_user_data
-  end
-
-  def clear_user_data
-    Dir.each_child("./test/user_data") do |dir_content|
-      File.delete("./test/user_data/" + dir_content) unless (dir_content == "sessions" || dir_content == "all_users.yaml")
-    end
-  end
-
-  def session
-    last_request.env["rack.session"]
-  end
-
-  def admin_session
-    { "rack.session" => { user: 'admin' }}
-  end
-
-  def sample_user_session
-    { "rack.session" => { user: 'bill' }}
   end
 
   def test_homepage_keystones_signed_out
@@ -283,7 +268,7 @@ class GardenAppTest < Minitest::Test
   def test_garden_edit
     summon_bill_and_his_front_yard_broccoli
 
-    new_garden_specs = { name: "windowsill",
+    new_garden_specs = { name: "window sill",
                          area: "321"
                         }
 
@@ -291,7 +276,7 @@ class GardenAppTest < Minitest::Test
     
     bills_data = load_user_file
 
-    assert_equal bills_data["gardens"][1].name, "windowsill"
+    assert_equal bills_data["gardens"][1].name, "window sill"
     assert_equal bills_data["gardens"][1].area, 321
 
     assert_equal session[:message], "Your garden has been updated"
