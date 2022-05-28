@@ -179,9 +179,14 @@ def add_garden(user_data, params)
 
   garden_name = params["garden_name"]
   area = params["area"].strip.to_i
+  #binding.pry
   id = generate_id(user_gardens)
 
+  # puts params
+  # puts "area == #{area}"
+
   new_garden = Garden.new(garden_name, area)
+  # puts new_garden
   
   # switched to hash
   user_gardens[id] = new_garden
@@ -191,6 +196,7 @@ def load_garden(id_str)
   load_user_file["gardens"][id_str.to_i]
 end
 
+# should probably be made obsolete to Garden.valid_input?
 def valid_garden_input?(name_str, area_str)
   ####################### just not enough validation ##################
   return false if name_str.strip.size == 0
@@ -213,6 +219,9 @@ def add_planting_to_garden(garden, params)
   grow_time = params["grow_time"].to_i
 
   new_planting = Planting.new(name, harvest_date, grow_time)
+
+  new_planting.num_plants = params["num_plants"].to_i
+  new_planting.area_per_plant = params["area_per_plant"].to_f
   # create a new planting ID from the garden hash
   id = generate_id(garden.plantings)
   # add kv pair of id:planting obj to the Garden obj
@@ -314,6 +323,11 @@ post "/signup" do
 
 end
 
+# add a garden
+get "/garden/add" do 
+  erb :add_garden
+end
+
 # add a new garden
 post "/garden/add" do
   if valid_garden_input?(params["garden_name"], params["area"])
@@ -321,8 +335,13 @@ post "/garden/add" do
     # generate a garden in
     user_data = load_user_file
 
+    # binding.pry
+    # puts user_data.to_s
+    # puts
     add_garden(user_data, params)
-
+    # puts
+    # puts user_data.to_s
+    # puts
     save_to_user_file(user_data)
     # display message
     session[:message] = "Garden added"
@@ -336,24 +355,25 @@ end
 
 # edit garden properties ############# TODO waiting for forms
 get "/garden/:id/edit" do |id|
+  @id = id
   @garden = load_garden(id)
+  puts @garden.inspect
   # form with
     # name
       # prepopulate
     # area
       # prepopulate
   # also a delete button
-  
   erb :edit_garden
 end
 
 # submit data to add/remove garden
 post "/garden/:id/edit" do |garden_id|
-  if valid_garden_input?(params["name"], params["area"])
+  if Garden.valid_input?(params["garden_name"], params["area"])
     # edit the file
     user_data = load_user_file
     garden = user_data["gardens"][garden_id.to_i]
-    garden.rename(params["name"])
+    garden.rename(params["garden_name"])
     garden.change_area(params["area"].to_i)
     session[:message] = "Your garden has been updated"
     save_to_user_file(user_data)
@@ -384,6 +404,7 @@ post "/garden/:id/plantings/add" do |garden_id|
   #puts "/n\/add post/n"
   user_data = load_user_file
   garden = user_data["gardens"][garden_id.to_i]
+  #binding.pry
   add_planting_to_garden(garden, params)
   # save the data
   save_to_user_file(user_data)
@@ -391,6 +412,12 @@ post "/garden/:id/plantings/add" do |garden_id|
   session[:message] = "Added new planting to garden"
   # redirect to homepage
   redirect "/"
+end
+
+get "/garden/:id/plantings/add" do |garden_id|
+  @garden = load_garden(garden_id)
+  @garden_id = garden_id
+  erb :add_planting
 end
 
 # edit the parameters of a planting

@@ -8,7 +8,7 @@ require 'pry'
 require 'pry-byebug'
 
 class Garden
-  attr_reader :plantings, :area, :name, :id
+  attr_reader :plantings, :area, :name#, :id
 
   def initialize(name, area = 0)
     @name = name
@@ -18,11 +18,11 @@ class Garden
   end
 
   # will this interfere with method definition from garden.rb?
-  def generate_id(hash)
-    return 1 if hash.nil? || hash.empty?
+  # def self.generate_id(hash)
+  #   return 1 if hash.nil? || hash.empty?
 
-    hash.keys.max + 1
-  end
+  #   hash.keys.max + 1
+  # end
 
   def << (new_planting)
     raise ArgumentError unless new_planting.class == Planting
@@ -147,6 +147,17 @@ class Garden
   def plantings_active_on_date(date, plantings_arr = @plantings.values)
     results = plantings_arr.select { | planting| planting.active_on?(date) }
     results
+  end
+
+  def self.valid_input?(name_str, area_str)
+    return false if name_str.strip.size == 0
+
+    area_str.strip!
+    if area_str.size > 0
+      return false unless area_str.to_i.to_s == area_str
+    end
+  
+    true
   end
 end
 

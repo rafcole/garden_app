@@ -94,7 +94,9 @@ class GardenAppTest < Minitest::Test
                              h_year: "2022", 
                              h_month: "6", 
                              h_day: "30", 
-                             grow_time: "3"
+                             grow_time: "3",
+                             num_plants: "2",
+                             area_per_plant: "2"
                             }
     post "/garden/1/plantings/add", params_for_plantings, sample_user_session
   end
@@ -158,7 +160,7 @@ class GardenAppTest < Minitest::Test
   end
 
   def test_sign_up_valid_input
-    form_input = { username: "VeryValid", password: "Match11!!!", confirm_password: "Match11!!!" }
+    form_input = { username: "VeryValid", password: "Maatch11!!!", confirm_password: "Maatch11!!!" }
     post "/signup", form_input
 
     assert_equal session[:message], "Signup successful, welcome VeryValid"
@@ -304,10 +306,20 @@ class GardenAppTest < Minitest::Test
     assert_equal 10, bills_broccoli.grow_time   
   end
 
+  def test_planting_delete
+    summon_bill_and_his_front_yard_broccoli
+
+    post "/garden/1/plantings/1/delete", sample_user_session
+
+    bills_data = load_user_file
+    assert_empty bills_data["gardens"][1].plantings
+    assert_equal session[:message], "The planting has been deleted"
+  end
+
   def test_garden_edit
     summon_bill_and_his_front_yard_broccoli
 
-    new_garden_specs = { name: "window sill",
+    new_garden_specs = { garden_name: "window sill",
                          area: "321"
                         }
 
@@ -322,16 +334,6 @@ class GardenAppTest < Minitest::Test
   end
 
   def test_garden_edit_invalid_input
-  end
-
-  def test_planting_delete
-    summon_bill_and_his_front_yard_broccoli
-
-    post "/garden/1/plantings/1/delete", sample_user_session
-
-    bills_data = load_user_file
-    assert_empty bills_data["gardens"][1].plantings
-    assert_equal session[:message], "The planting has been deleted"
   end
 
   def test_garden_delete
