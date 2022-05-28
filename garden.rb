@@ -232,7 +232,7 @@ end
 
 def edit_planting(planting, params)
   planting.harvest_date = Date.new(params["h_year"].to_i, params["h_month"].to_i, params["h_day"].to_i)
-  planting.change_name(params["name"])
+  planting.change_name(params["planting_name"])
   planting.num_plants = params["num_plants"].to_i
   planting.area_per_plant = params["area_per_plant"].to_f
   planting.grow_time = params["grow_time"].to_i
@@ -420,13 +420,28 @@ get "/garden/:id/plantings/add" do |garden_id|
   erb :add_planting
 end
 
+get "/garden/:id/plantings/:id/edit" do |garden_id, planting_id|
+  user_data = load_user_file
+  @garden_id = garden_id.to_i
+  @planting_id = planting_id.to_i
+  @garden = user_data["gardens"][@garden_id]
+  @planting = @garden.plantings[@planting_id]
+
+  @harvest_date = @planting.harvest_date
+
+  erb :edit_planting
+end
+
 # edit the parameters of a planting
 post "/garden/:id/plantings/:id/edit" do |garden_id, planting_id|
   user_data = load_user_file
-  garden = user_data["gardens"][garden_id.to_i]
-  planting = garden.plantings[planting_id.to_i]
+  @garden_id = garden_id.to_i
+  @planting_id = planting_id.to_i
+  
+  @garden = user_data["gardens"][@garden_id]
+  @planting = @garden.plantings[@planting_id]
 
-  edit_planting(planting, params)
+  edit_planting(@planting, params)
   # save the data
   save_to_user_file(user_data)
   # create a success msg
