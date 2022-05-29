@@ -1,0 +1,67 @@
+<div>
+  <h3>Welcome!</h1>
+  <% if session[:user].nil? %>
+    <p><a href=/signin>Log in to start planning your garden</a></p>
+    <p><a href=/signup>Not registered? Sign up here</a></p>
+  <% else %>
+    <p>Logged in as <%=@current_user%>  <a href=/signout>Sign out</a></p>
+  <% end %>
+
+
+  <div>
+    <h1>Summary</h1>
+    <!--Toggle season? Drop down menu with defaults, reload page with diff parameters? > </-->
+    <div>
+      <ul>
+        <li>You have <em><%=@active_next_6_months%></em> plants planned for the next <em>6</em> months</li>
+        <li>You'll need <em><%=@max_area_required[0]%>1000</em> sq feet at peak season, between <%=@max_area_required[1].min%> and <%=@max_area_required[1].max%></li>
+        <li>You have <em><%=@max_area_avaliable%></em> square feet avaliable in your gardens. <p style="color:red;"><%=" You do not have enough garden space for peak season"if @max_area_required[0] > @max_area_avaliable%></p></li>
+      </ul>
+    </div>
+    <h3>Planting schedule for the next 3 months</h3>
+      <div>
+        <ul>
+          <% @user_schedule.each do |date, str_arr| %>
+            <li><%= date %></li>
+            <% str_arr.each do |action_str| %>
+              <ul>
+                <li><%=action_str%></li>
+              </ul>
+            <% end %>
+          <% end %>
+        </ul>
+      </div>
+  </div>
+
+
+
+
+
+  <div>
+    <!--Should this entire area be yielding?>  </-->
+    <h1>Your Gardens</h1>
+    <p><a href=/garden/add>Add a garden area</a></p>
+    <% @sorted_gardens.each do |garden_id, garden| %>
+      <h2> <%= garden.name %> <h4><%=garden.area%> sq ft</h4></h2>
+        <p><a href="/garden/<%= garden_id %>"> View all activity for this garden</a> - <a href="/garden/<%= garden_id %>/edit"> Edit <%= garden.name%></a> - <a href="/garden/<%= garden_id %>/plantings/add"> Add a plant to <%= garden.name%> </a> </p>
+
+        <%=%q(<strong><p style="color:red;">This garden do not have enough square footage for all planned plantings</p></strong>) if (garden.max_area_required((Date.today.. (Date.today << -6)))[0] > garden.area)%>
+        <p> return error if exceed max square footage of box?
+        <!--Should this be yielding?>  </-->
+        <h3> Planting soon! </h3>
+          <ul>
+            <% garden.upcoming_plantings(5).each do |planting| %>
+              <li> <%= "#{planting.name}, #{planting.num_plants}x requiring #{planting.area_needed} sq ft total on  - #{planting.planting_date}   <a href=/garden/#{garden_id}/plantings/#{planting.id}/edit> Edit this listing</a>" %> </li>
+            <% end%>
+          </ul>
+        <h3> Harvesting soon!</h3>
+          <ul>
+            <% garden.upcoming_harvests(5).each do |planting| %>
+              <li> <%= "#{planting.name}, #{planting.num_plants}x freeing up #{planting.area_needed} sq ft total on - #{planting.harvest_date}<a href=/garden/#{garden_id}/plantings/#{planting.id}/edit> Edit this listing</a>" %> </li>
+            <% end%>
+          </ul>
+          <br>
+          <br>
+    <% end %>
+  </div>
+</div>

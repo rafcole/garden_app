@@ -1,6 +1,11 @@
 <ul>
-  <% @user_schedule.each do |str| %>
-    <li><%= str %></li>
+  <% @user_schedule.each do |date, str_arr| %>
+    <li><%= date %></li>
+    <% str_arr.each do |action_str| %>
+      <ul>
+        <li><%=action_str%></li>
+      </ul>
+    <% end %>
   <% end %>
 </ul>
 

@@ -274,7 +274,7 @@ def generate_schedule(starting_date: Date.today, months_ahead: 12, gardens: load
       if date_range.cover?(planting.harvest_date)
         str = "Harvest #{planting.num_plants} #{planting.name} from #{current_garden.name}"
            # search the schedule hash for a date which matches the planting date
-        date_key = schedule.assoc(planting.planting_date) #[date_obj, <planting_obj>]
+        date_key = schedule.assoc(planting.harvest_date) #[date_obj, <planting_obj>]
 
            #p schedule.assoc(planting.planting_date)
            # if there was already a key in the hash, 
@@ -285,22 +285,8 @@ def generate_schedule(starting_date: Date.today, months_ahead: 12, gardens: load
           schedule[planting.harvest_date] = [str]
         end
       end
-        # add kv pair to the schedule - date: str
-          # check the schedule hash for a key which is equivalent to the planting date
-            # if not found, add a date: [str1] kv pair
-            # if found, add str2 to the value array of the key
-      # repeat for harvest date
     end
-    #puts schedule.values.to_s
-    
   end
-
-
-  # iterate over the gardens
-    # create a list of plantings which are active in the given date range
-    # iterate over the plantings
-      # add planting date message to output str if planting date is in range
-      # add harvest date messsage if harvest date is in range
   schedule.sort
 end
 
@@ -309,13 +295,8 @@ get "/schedule" do
   @user_data = load_user_file
   @current_user = session[:user]
 
-  # not clear if this sorting
-  @sorted_gardens = @user_data["gardens"].sort_by { |id, garden| id }
-
   # if we had a user class this would be a user instance method
   @user_schedule = generate_schedule(starting_date: Date.today, months_ahead: 3)
-
-  puts 
 
   erb :schedule
 end
@@ -328,8 +309,19 @@ get "/" do
   # not clear if this sorting
   @sorted_gardens = @user_data["gardens"].sort_by { |id, garden| id }
 
+  # summary
+  # active plants in the next 6 months
+  # need max square footage of avaliable square footage
+  @active_next_6_months = @user_data["gardens"].values.reduce { |garden| garden.plantings_active_in_range(Date.today.. (Date.today << -6)).size }
+    #max
+    #avaliable
+
+  @max_area_required = @user_data["gardens"].values.map { |garden| garden.max_area_required((Date.today.. (Date.today << -6))) }.max
+  @max_area_avaliable = @user_data["gardens"].values.map { |garden| garden.area }.reduce(:+)
+
+  #schedule
   # if we had a user class this would be a user instance method
-  @user_schedule = generate_schedule(starting_date: Date.today, months_ahead: 12)
+  @user_schedule = generate_schedule(starting_date: Date.today, months_ahead: 3)
 
 
   erb :home

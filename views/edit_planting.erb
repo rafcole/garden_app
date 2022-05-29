@@ -1,41 +1,41 @@
 <h2> Edit the details for <%=@planting.name%></h2>
   <form class="form-inline" action="/garden/<%=@garden_id%>/plantings/<%=@planting_id%>/edit" method="post">
     <label for="planting_name">Plant name</label>
-      <input placeholder="Tomatoes" name="planting_name">
+      <input value="<%=@planting.name%>" name="planting_name">
     <p> Harvest date:</p>
   <div class="row">
     <div class="col-50">
       <label for="h_year">Year</label>
-      <input type="text" name="h_year" placeholder=<%=@harvest_date.year%>>
+      <input type="text" name="h_year" value='<%=@harvest_date.year%>'>
     </div>
     <div class="col-50">
       <label for="h_month">Month</label>
-      <input type="text" name="h_month" placeholder=<%=@harvest_date.month%>>
+      <input type="text" name="h_month" value=<%=@harvest_date.month%>>
     </div>
     <div class="col-50">
       <label for="h_day">Day</label>
-      <input type="text" name="h_day" placeholder=<%=@harvest_date.day%>>
+      <input type="text" name="h_day" value=<%=@harvest_date.day%>>
     </div>
     <p> Weeks required:</p>
 
     <div class="col-50">
       <label for="grow_time">Weeks required</label>
-      <input type="text" name="grow_time" placeholder=<%=@planting.grow_time%>>
+      <input type="text" name="grow_time" value=<%=@planting.grow_time%>>
     </div>
 
     <div class="col-50">
       <label for="num_plants">Number of plants: </label>
-      <input type="text" name="num_plants" placeholder=<%=@planting.num_plants%>>
+      <input type="text" name="num_plants" value=<%=@planting.num_plants%>>
     </div>
 
       <div class="col-50">
       <label for="area_per_plant">Square ft req per plant</label>
-      <input type="text" name="area_per_plant" placeholder=<%=@planting.area_per_plant%>>
+      <input type="text" name="area_per_plant" value=<%=@planting.area_per_plant%>>
     </div>
   </div>
 
 
 
 
-    <button type="submit">Add planting</button>
+    <button type="submit">Edit "<%=@planting.name%>"planting</button>
   </form>
