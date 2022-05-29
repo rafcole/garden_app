@@ -241,18 +241,67 @@ end
 
 ############ routes ###############
 
-def generate_schedule(starting_date: Date.today, months_ahead: 12)
+def generate_schedule(starting_date: Date.today, months_ahead: 12, gardens: load_user_file["gardens"])
   schedule = {}
   #schedule = { date_object => ["Harvest this", "plant that"]}
   output_str_arr = []
 
   date_range = (Date.today.. Date.today << -months_ahead)
 
+  gardens.each do |_id, current_garden|
+    active_plantings = current_garden.plantings_active_in_range(date_range)
+
+    active_plantings.each do |planting|
+      # if the planting date of the current plant is in the date range
+      if date_range.cover?(planting.planting_date)
+        # write a string to detail the planting activity
+        str = "Plant #{planting.num_plants} #{planting.name} in #{current_garden.name}"
+
+        # search the schedule hash for a date which matches the planting date
+        date_key = schedule.assoc(planting.planting_date) #[date_obj, <planting_obj>]
+
+        #p schedule.assoc(planting.planting_date)
+        # if there was already a key in the hash, 
+        # we can't search for 
+        if date_key
+          schedule[date_key[0]] << str
+        else
+          schedule[planting.planting_date] = [str]
+        end
+        # puts schedule
+      end
+
+      if date_range.cover?(planting.harvest_date)
+        str = "Harvest #{planting.num_plants} #{planting.name} from #{current_garden.name}"
+           # search the schedule hash for a date which matches the planting date
+        date_key = schedule.assoc(planting.planting_date) #[date_obj, <planting_obj>]
+
+           #p schedule.assoc(planting.planting_date)
+           # if there was already a key in the hash, 
+           # we can't search for 
+        if date_key
+          schedule[date_key[0]] << str
+        else
+          schedule[planting.harvest_date] = [str]
+        end
+      end
+        # add kv pair to the schedule - date: str
+          # check the schedule hash for a key which is equivalent to the planting date
+            # if not found, add a date: [str1] kv pair
+            # if found, add str2 to the value array of the key
+      # repeat for harvest date
+    end
+    #puts schedule.values.to_s
+    
+  end
+
+
   # iterate over the gardens
     # create a list of plantings which are active in the given date range
     # iterate over the plantings
       # add planting date message to output str if planting date is in range
       # add harvest date messsage if harvest date is in range
+  schedule.sort
 end
 
 # testing convenience but probably useful
@@ -265,6 +314,8 @@ get "/schedule" do
 
   # if we had a user class this would be a user instance method
   @user_schedule = generate_schedule(starting_date: Date.today, months_ahead: 3)
+
+  puts 
 
   erb :schedule
 end

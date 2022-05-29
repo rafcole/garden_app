@@ -8,7 +8,7 @@ require 'pry'
 require 'pry-byebug'
 
 class Garden
-  attr_reader :plantings, :area, :name#, :id
+  attr_reader :plantings, :area, :name, :id
 
   def initialize(name, area = 0)
     @name = name
@@ -23,6 +23,10 @@ class Garden
 
   #   hash.keys.max + 1
   # end
+
+  def set_id(id)
+    @id = id
+  end
 
   def << (new_planting)
     raise ArgumentError unless new_planting.class == Planting
@@ -94,7 +98,6 @@ class Garden
     # Return the highest KV pair as a two object array
   end
 
-
   def next_harvest_date(date, plantings = @plantings)
     # Trip up - does plantings_active_in_range include potential newcomers?
 
@@ -105,6 +108,21 @@ class Garden
     plantings.map { |_id, planting| planting.harvest_date }.min
   end
 
+  def upcoming_harvests(limit, cut_off_date = Date.today + 60)
+    candidates = plantings_active_in_range(Date.today.. cut_off_date)
+
+    candidates.sort_by! { |planting| planting.harvest_date }
+
+    candidates.first(limit)
+  end
+
+  def upcoming_plantings(limit, cut_off_date = Date.today + 60)
+    candidates = plantings_active_in_range(Date.today.. cut_off_date)
+
+    candidates.sort_by! { |planting| planting.planting_date }
+
+    candidates.first(limit)
+  end
   # sum the areas of the plants which are active on a given day
   def area_needed_on_date(date, plantings_arr = @plantings.values)
     return 0 if (plantings_arr.nil? || plantings_arr.empty?)  
@@ -162,12 +180,16 @@ class Garden
 end
 
 class Planting
-  attr_reader :name, :harvest_date, :num_plants, :area_per_plant, :grow_time
+  attr_reader :name, :harvest_date, :num_plants, :area_per_plant, :grow_time, :id
 
   def initialize(name, harvest_date, grow_time)
     @name = name
     @harvest_date = harvest_date
     @grow_time = grow_time
+  end
+
+  def set_id(id)
+    @id = id
   end
 
   def active_on?(date)
@@ -186,7 +208,7 @@ class Planting
 
   def planting_date
     # returns date obj, assume @grow_time measured in weeks
-    @harvest_date - ((@grow_time * 7) - 1)
+    @harvest_date - ((@grow_time * 7) - 1).truncate
   end
 
   def num_plants=(num)
