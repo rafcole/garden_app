@@ -214,7 +214,7 @@ end
 # the assumed formatting of params? is params the same between all rack applications?
 def add_planting_to_garden(garden, params)
   # create a new plantings obj with the params
-  name = params["name"]
+  name = params["planting_name"]
   harvest_date = Date.new(params["h_year"].to_i, params["h_month"].to_i, params["h_day"].to_i)
   grow_time = params["grow_time"].to_i
 
@@ -241,8 +241,45 @@ end
 
 ############ routes ###############
 
+def generate_schedule(starting_date: Date.today, months_ahead: 12)
+  schedule = {}
+  #schedule = { date_object => ["Harvest this", "plant that"]}
+  output_str_arr = []
+
+  date_range = (Date.today.. Date.today << -months_ahead)
+
+  # iterate over the gardens
+    # create a list of plantings which are active in the given date range
+    # iterate over the plantings
+      # add planting date message to output str if planting date is in range
+      # add harvest date messsage if harvest date is in range
+end
+
+# testing convenience but probably useful
+get "/schedule" do
+  @user_data = load_user_file
+  @current_user = session[:user]
+
+  # not clear if this sorting
+  @sorted_gardens = @user_data["gardens"].sort_by { |id, garden| id }
+
+  # if we had a user class this would be a user instance method
+  @user_schedule = generate_schedule(starting_date: Date.today, months_ahead: 3)
+
+  erb :schedule
+end
+
 # homepage
 get "/" do
+  @user_data = load_user_file
+  @current_user = session[:user]
+
+  # not clear if this sorting
+  @sorted_gardens = @user_data["gardens"].sort_by { |id, garden| id }
+
+  # if we had a user class this would be a user instance method
+  @user_schedule = generate_schedule(starting_date: Date.today, months_ahead: 12)
+
 
   erb :home
 end
@@ -386,12 +423,14 @@ post "/garden/:id/edit" do |garden_id|
 end
 
 # delete a garden
-post "/garden/:id/delete" do |id|
+get "/garden/:id/delete" do |id|
   user_data = load_user_file
   garden_id = garden_id.to_i
 
   # load the file
+  puts user_data["gardens"]
   user_data["gardens"].delete(garden_id)
+  puts user_data["gardens"]
   # delete the planting
   session[:message] = "The garden has been deleted"
   # save the file
