@@ -1,0 +1,36 @@
+<h2> Add a plant to: <%=@garden.name%></h2>
+  <form class="form-inline" action="/garden/<%=@garden_id%>/plantings/add" method="post">
+    <div class="row">
+      <label for="planting_name">Plant name</label>
+      <input placeholder="Tomatoes" name="planting_name">
+    </div>
+
+
+
+
+    <p> Harvest date:</p>
+      <div class="row">
+        <label for="grow_time">Weeks required</label>
+        <input type="text" name="grow_time">
+
+        <label for="h_year">Year</label>
+        <input type="text" name="h_year" placeholder="2022">
+
+        <label for="h_month">Month</label>
+        <input type="text" name="h_month">
+        <label for="h_day">Day</label>
+        <input type="text" name="h_day">
+      </div>
+
+    <br>
+
+      <div class="row">
+        <label for="num_plants">Number of plants: </label>
+        <input type="text" name="num_plants">
+
+        <label for="area_per_plant">Square ft req per plant</label>
+        <input type="text" name="area_per_plant">
+      </div>
+
+    <button type="submit">Add planting</button>
+  </form>

@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <title>PYG</title>
+  <link href="/garden.css" rel="stylesheet" type="text/css" />
+  
+
+  
+  <body>  
+    <header>
+      <% if session[:message] %>
+        <p class="message"><%= session.delete(:message) %></p>
+      <% end %>
+    </header>
+    
+    <main>
+      <%= yield %>
+    </main>
+
+  </body>
+</html>

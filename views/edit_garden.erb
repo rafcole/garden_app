@@ -1,0 +1,15 @@
+<h2>Edit <%=@garden.name%></h2>
+<div>
+  <form action="/garden/<%=@id%>/edit" method="post">
+
+    <label for="garden_name">Garden Name: 
+      <input name='garden_name' value=<%=@garden.name%>>
+    </label><br>
+
+    <label for="area">Square footage:
+      <input name="area" value=<%=@garden.area%>>
+    </label><br>
+
+    <button type='submit'>Submit changes</button>
+  </form>
+</div>

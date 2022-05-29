@@ -1,0 +1,23 @@
+
+<h2> Register an account </h2>
+  <div>
+    <form action="/signup" method="post">
+
+      <label for="username">Username: 
+        <input name='username' value=<%=@username%>>
+      </label><br>
+
+      <p>Your password must be 8 characters long, include one lowercase letter, 
+      one uppercase letter and one special character</p>
+
+      <label for="password">Password:
+        <input name="password" type='password'>
+      </label><br>
+
+      <label for="confirm_password">Password:
+        <input name="confirm_password" type='password'>
+      </label><br>
+
+      <button type='submit' value='Log In'>Login</button>
+    </form>
+  </div>
