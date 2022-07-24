@@ -11,6 +11,4 @@ gem "minitest"
 gem "yaml"
 gem "bcrypt"
 
-gem "pry"
-gem "pry-byebug"
 gem 'simplecov'
