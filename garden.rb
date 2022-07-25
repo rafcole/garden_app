@@ -5,15 +5,29 @@ require "sinatra"
 require "sinatra/reloader"
 require "tilt/erubis"
 require "bcrypt"
-require "pry"
+#require "pry"
 #require "pry-byebug"
 
 require_relative 'custom_classes/garden_class'
+require_relative 'custom_classes/db_persistence'
 
 # session needs in app?
 configure do
   enable :sessions
   set :session_secret, 'super secret'
+end
+
+configure(:development) do
+  require "sinatra/reloader"
+  also_reload "custom_classes/db_persistence.rb"
+end
+
+before do
+  @storage = GardenDBPersistance.new(logger)
+end
+
+after do
+  @storage.disconnect
 end
 
 # this is where the #id.yaml files for inidividual users + all_users.yaml will live
@@ -39,12 +53,24 @@ end
 def user_id
   # if a user is logged in, it's the simple id
   # otherwise it's the session id
-  if session[:user]
-    load_user_credentials[session[:user]]['id']
-  else
-    session["session_id"]
-  end
+  # if session[:user]
+  #   load_user_credentials[session[:user]]['id']
+  # else
+  #   session["session_id"]
+  # end
+  session[:user] || user_id_for_temp_user(session["session_id"])
 end
+
+def user_id_for_temp_user(session_id)
+  # Look in users table for user whose name matches the session id
+  #   If found, return the users.id
+  # Otherwise need to generate a temp user
+  #   @storage.generate_temp_user()
+
+  @storage.user_id_for_session(session_id) || @storage.generate_temp_user(session_id)
+end
+
+
 
 def generate_id(hash)
     return 1 if hash.nil? || hash.empty?
@@ -63,7 +89,7 @@ def load_user_file
       # if it doesn't exist, create it
         # pretty significant side effect, but it only happens once
         # acceptable?
-    create_user_file("sessions/#{id}", hsh) unless File.exist(path)
+    create_user_file("sessions/#{id}", hsh) unless File.exists?(path)
     # then load it
 
     YAML.load_file(path)
@@ -301,30 +327,61 @@ get "/schedule" do
   erb :schedule
 end
 
+
+
 # homepage
 get "/" do
   @user_data = load_user_file
-  @current_user = session[:user]
+  #@current_user = session[:user]
+  # TODO - figure out how to create new set of dummy data unique
+  # to each session for those who are not logged in
+  @current_user_id = 1
 
   # not clear if this sorting
-  @sorted_gardens = @user_data["gardens"].sort_by { |id, garden| id }
+  # @sorted_gardens = @user_data["gardens"].sort_by { |id, garden| id }
 
-  # summary
-  # active plants in the next 6 months
-  # need max square footage of avaliable square footage
-  @active_next_6_months = @user_data["gardens"].values.reduce { |garden| garden.plantings_active_in_range(Date.today.. (Date.today << -6)).size }
-    #max
-    #avaliable
+  # # summary
+  # # active plants in the next 6 months
+  # # need max square footage of avaliable square footage
+  # @active_next_6_months = @user_data["gardens"].values.reduce { |garden| garden.plantings_active_in_range(Date.today.. (Date.today << -6)).size }
+  #   #max
+  #   #avaliable
 
-  @max_area_required = @user_data["gardens"].values.map { |garden| garden.max_area_required((Date.today.. (Date.today << -6))) }.max
-  @max_area_avaliable = @user_data["gardens"].values.map { |garden| garden.area }.reduce(:+)
+  # @max_area_required = @user_data["gardens"].values.map { |garden| garden.max_area_required((Date.today.. (Date.today << -6))) }.max
+  # @max_area_avaliable = @user_data["gardens"].values.map { |garden| garden.area }.reduce(:+)
 
-  #schedule
-  # if we had a user class this would be a user instance method
-  @user_schedule = generate_schedule(starting_date: Date.today, months_ahead: 3)
+  # #schedule
+  # # if we had a user class this would be a user instance method
+  # @user_schedule = generate_schedule(starting_date: Date.today, months_ahead: 3)
 
 
   erb :home
+end
+
+get "/scratch" do
+  @variable = @storage.user_gardens(1)
+  puts @variable
+  erb :scratch
+end
+
+get "/garden/all" do
+  session[:user] = 1 # bill is logged in
+  @user_id = user_id()
+
+  # Assume a user is logged in
+  # Iterate over all of their gardens
+  #   Display info about that garden
+  #     Name, size, num plantings
+  #     More info link
+
+
+  erb :all_user_gardens
+end
+
+get "/garden/:garden_id" do
+  # Display each plant + statistics from this one garden
+
+  erb :single_garden
 end
 
 # sign in
