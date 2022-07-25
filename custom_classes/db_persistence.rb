@@ -79,11 +79,22 @@ class GardenDBPersistance
     # Return results
     results = []
     sql = <<~SQL
-      SELECT gardens.id, gardens.name, gardens.area_sq_ft, gardens.private 
-      FROM gardens LEFT JOIN users_gardens ON users_gardens.user_id = $1
-      GROUP BY gardens.id
-      ORDER BY gardens.name ASC
+        SELECT gardens.*, count(distinct plantings.id) AS num_plants
+        FROM gardens 
+        JOIN users_gardens ON users_gardens.user_id = 1
+        LEFT JOIN plantings ON plantings.garden_id = gardens.id
+        GROUP BY gardens.id
+        ORDER BY gardens.name ASC;
       SQL
+
+      SELECT gardens.*, count(distinct plantings.id) AS num_plants
+      FROM gardens 
+      JOIN users_gardens ON users_gardens.user_id = 1
+      LEFT JOIN plantings ON plantings.garden_id = gardens.id
+      GROUP BY gardens.id
+      ORDER BY gardens.name ASC;
+
+
     search_results = query(sql, user_id.to_s)
 
     search_results.each do |tuple|
@@ -91,7 +102,8 @@ class GardenDBPersistance
                     id: tuple['id'],
                     name: tuple['name'],
                     area_sq_ft: tuple['area_sq_ft'],
-                    private: tuple['private'] == true
+                    private: tuple['private'] == true,
+                    num_plantings: tuple['num_plantings']
                   }
     end
 
