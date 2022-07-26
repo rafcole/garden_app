@@ -1,5 +1,5 @@
-<h2> Add a plant to: <%=@garden.name%></h2>
-  <form class="form-inline" action="/garden/<%=@garden_id%>/plantings/add" method="post">
+<h2> Add a plant to: <%=@garden[:name]%></h2>
+  <form class="form-inline" action="/garden/<%=@garden[:id]%>/plantings/add" method="post">
     <div class="row">
       <label for="planting_name">Plant name</label>
       <input placeholder="Tomatoes" name="planting_name">
@@ -8,18 +8,18 @@
 
 
 
-    <p> Harvest date:</p>
+    <p> Planting date:</p>
       <div class="row">
         <label for="grow_time">Weeks required</label>
         <input type="text" name="grow_time">
 
-        <label for="h_year">Year</label>
-        <input type="text" name="h_year" placeholder="2022">
+        <label for="p_year">Year</label>
+        <input type="text" name="p_year" placeholder="2022">
 
-        <label for="h_month">Month</label>
-        <input type="text" name="h_month">
-        <label for="h_day">Day</label>
-        <input type="text" name="h_day">
+        <label for="p_month">Month</label>
+        <input type="text" name="p_month">
+        <label for="p_day">Day</label>
+        <input type="text" name="p_day">
       </div>
 
     <br>
