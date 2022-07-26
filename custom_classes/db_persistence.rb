@@ -99,7 +99,7 @@ class GardenDBPersistance
     }
   end
 
-  def gardens(garden_id)
+  def garden(garden_id)
     sql = "SELECT * FROM gardens WHERE id = $1"
 
     results = query(sql, garden_id)
@@ -116,6 +116,15 @@ class GardenDBPersistance
       results << planting_detail_hash(tuple)
     end
     results
+  end
+
+  def add_planting_to_garden(hsh)
+    sql = <<~SQL
+            INSERT INTO plantings(garden_id, name, description, num_plants, area_per_plant_sq_ft, planting_date, grow_time)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+          SQL
+
+    query(sql, *hsh.values)
   end
 
   def harvest_date(planting_date, growing_weeks)

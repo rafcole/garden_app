@@ -238,22 +238,36 @@ end
 ######### PLANTING HELPERS
 # should this be an instance method of the garden? would you build the Garden class around
 # the assumed formatting of params? is params the same between all rack applications?
-def add_planting_to_garden(garden, params)
+def add_planting_to_garden(garden_id, params)
   # create a new plantings obj with the params
-  name = params["planting_name"]
-  harvest_date = Date.new(params["h_year"].to_i, params["h_month"].to_i, params["h_day"].to_i)
-  grow_time = params["grow_time"].to_i
+  # name = params["planting_name"]
+  # harvest_date = Date.new(params["h_year"].to_i, params["h_month"].to_i, params["h_day"].to_i)
+  # grow_time = params["grow_time"].to_i
 
-  new_planting = Planting.new(name, harvest_date, grow_time)
+  # new_planting = Planting.new(name, harvest_date, grow_time)
 
-  new_planting.num_plants = params["num_plants"].to_i
-  new_planting.area_per_plant = params["area_per_plant"].to_f
-  # create a new planting ID from the garden hash
-  id = generate_id(garden.plantings)
-  # add kv pair of id:planting obj to the Garden obj
+  # new_planting.num_plants = params["num_plants"].to_i
+  # new_planting.area_per_plant = params["area_per_plant"].to_f
+  # # create a new planting ID from the garden hash
+  # id = generate_id(garden.plantings)
+  # # add kv pair of id:planting obj to the Garden obj
 
-    # id is integer or symbol?
-  garden << new_planting
+  #   # id is integer or symbol?
+  # garden << new_planting
+end
+
+def convert_params_to_planting_hash(garden_id, params)
+  planting_date = "#{params[:p_year]}-#{params[:p_month]}-#{params[:p_day]}"
+  
+  {
+    garden_id: garden_id,
+    name: params["planting_name"],
+    description: params["description"] || '', 
+    num_plants: params["num_plants"],
+    area_per_plant_sq_ft: params["area_per_plant"],
+    planting_date: planting_date,
+    grow_time: params["grow_time"]
+  }
 end
 
 def edit_planting(planting, params)
@@ -263,6 +277,13 @@ def edit_planting(planting, params)
   planting.area_per_plant = params["area_per_plant"].to_f
   planting.grow_time = params["grow_time"].to_i
 end
+
+def sort_by_currently_growing(arr_of_plantings)
+  arr_of_plantings.partition do |planting_hsh|
+    planting_hsh[:currently_growing] == true
+  end
+end
+
 
 
 ############ routes ###############
@@ -375,18 +396,12 @@ get "/garden/all" do
   erb :all_user_gardens
 end
 
-def sort_by_currently_growing(arr_of_plantings)
-  arr_of_plantings.partition do |planting_hsh|
-    planting_hsh[:currently_growing] == true
-  end
-end
-
 get "/garden/:garden_id" do |garden_id|
   # Display each plant + statistics from this one garden
   session[:user] = 1 # bill is logged in
   @user_id = user_id()
 
-  @garden_details = @storage.gardens(garden_id)
+  @garden_details = @storage.garden(garden_id)
   all_plantings = @storage.plantings_from_garden(garden_id)
 
   @active_plantings, @inactive_plantings = sort_by_currently_growing(all_plantings)
@@ -560,22 +575,31 @@ end
 
 # add a new planting to a garden
 post "/garden/:id/plantings/add" do |garden_id|
-  #puts "/n\/add post/n"
-  user_data = load_user_file
-  garden = user_data["gardens"][garden_id.to_i]
-  #binding.pry
-  add_planting_to_garden(garden, params)
-  # save the data
-  save_to_user_file(user_data)
+  # #puts "/n\/add post/n"
+  # user_data = load_user_file
+  # garden = user_data["gardens"][garden_id.to_i]
+  # #binding.pry
+  puts params.to_s
+  hsh = convert_params_to_planting_hash(garden_id, params)
+  @storage.add_planting_to_garden(hsh)
+  # # save the data
+  # save_to_user_file(user_data)
+
+  # Reformat params to hash 
+  # Pass that hash off to the @db for sql stuff
+  # Both of the above can be added to add_planting_to_garden but not necessary
+
+
   # create a success msg
-  session[:message] = "Added new planting to garden"
+  session[:message] = "Added \"#{params[:name]}\" to garden"
   # redirect to homepage
   redirect "/"
 end
 
 get "/garden/:id/plantings/add" do |garden_id|
-  @garden = load_garden(garden_id)
-  @garden_id = garden_id
+  # @garden = load_garden(garden_id)
+  # @garden_id = garden_id
+  @garden = @storage.garden(garden_id)
   erb :add_planting
 end
 
