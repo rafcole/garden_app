@@ -367,21 +367,41 @@ end
 get "/garden/all" do
   session[:user] = 1 # bill is logged in
   @user_id = user_id()
+  @user_name = @storage.user_name(@user_id)
 
-  # Assume a user is logged in
-  # Iterate over all of their gardens
-  #   Display info about that garden
-  #     Name, size, num plantings
-  #     More info link
-
-
+  # array of hashes
+  @gardens = @storage.user_gardens(@user_id)
+  # TODO - switch num plantings to active plantings
   erb :all_user_gardens
 end
 
-get "/garden/:garden_id" do
-  # Display each plant + statistics from this one garden
+def sort_by_currently_growing(arr_of_plantings)
+  arr_of_plantings.partition do |planting_hsh|
+    planting_hsh[:currently_growing] == true
+  end
+end
 
-  erb :single_garden
+get "/garden/:garden_id" do |garden_id|
+  # Display each plant + statistics from this one garden
+  session[:user] = 1 # bill is logged in
+  @user_id = user_id()
+
+  @garden_details = @storage.gardens(garden_id)
+  all_plantings = @storage.plantings_from_garden(garden_id)
+
+  @active_plantings, @inactive_plantings = sort_by_currently_growing(all_plantings)
+
+  # Run a query, create an array of hashes
+  # Display garden stats, garden edit link
+  # If the garden has no plantings, apologize, link to add Some
+  # otherwise
+  # Iterate through the hash
+  #   Display info and edit lings
+  # Link to add planting
+
+
+
+  erb :all_plantings_per_garden
 end
 
 # sign in
@@ -559,6 +579,8 @@ get "/garden/:id/plantings/add" do |garden_id|
   erb :add_planting
 end
 
+
+# TODO does this sequencing make sense?
 get "/garden/:id/plantings/:id/edit" do |garden_id, planting_id|
   user_data = load_user_file
   @garden_id = garden_id.to_i

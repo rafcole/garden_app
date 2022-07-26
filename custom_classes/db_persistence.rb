@@ -67,46 +67,90 @@ class GardenDBPersistance
 
   ################# GARDEN METHODS ###################
   def user_gardens(user_id)
-    # Want this to return an array of hashes
-    # [{id:, name:, area_sq_ft:, private:}]
-    # Eventaully we can iterate throught the hashes, no problem
-
-    # Declare a results array
-    # Write out the SQL for all gardens of a user
-    # Run the query, store it in a variable
-    # Iterate over the query tuples
-    #   Add formatted hash from current tuple to results array
-    # Return results
     results = []
+    search_results = garden_detail_for_user(user_id)
+
+    search_results.each do |tuple|
+      results << garden_detail_hash(tuple)
+    end
+
+    results
+  end
+
+  def garden_detail_for_user(user_id)
     sql = <<~SQL
-        SELECT gardens.*, count(distinct plantings.id) AS num_plants
+        SELECT gardens.*, count(distinct plantings.id) AS num_plantings
         FROM gardens 
-        JOIN users_gardens ON users_gardens.user_id = 1
+        JOIN users_gardens ON users_gardens.user_id = $1
         LEFT JOIN plantings ON plantings.garden_id = gardens.id
         GROUP BY gardens.id
         ORDER BY gardens.name ASC;
       SQL
+    query(sql, user_id.to_s)
+  end
 
-      SELECT gardens.*, count(distinct plantings.id) AS num_plants
-      FROM gardens 
-      JOIN users_gardens ON users_gardens.user_id = 1
-      LEFT JOIN plantings ON plantings.garden_id = gardens.id
-      GROUP BY gardens.id
-      ORDER BY gardens.name ASC;
+  def garden_detail_hash(tuple)
+    {
+      id: tuple['id'],
+      name: tuple['name'],
+      area_sq_ft: tuple['area_sq_ft'],
+      private: tuple['private'] == true,
+      num_plantings: tuple['num_plantings']
+    }
+  end
 
+  def gardens(garden_id)
+    sql = "SELECT * FROM gardens WHERE id = $1"
 
-    search_results = query(sql, user_id.to_s)
+    results = query(sql, garden_id)
 
-    search_results.each do |tuple|
-      results << {
-                    id: tuple['id'],
-                    name: tuple['name'],
-                    area_sq_ft: tuple['area_sq_ft'],
-                    private: tuple['private'] == true,
-                    num_plantings: tuple['num_plantings']
-                  }
+    results = garden_details_hash(results.tuple(0))
+  end
+
+ ################### PLANTING METHODS ####################
+
+  def plantings_from_garden(garden_id)
+    sql = "SELECT * FROM plantings WHERE garden_id = $1"
+    results = []
+    query(sql, garden_id).each do |tuple|
+      results << planting_detail_hash(tuple)
     end
-
     results
+  end
+
+  def harvest_date(planting_date, growing_weeks)
+    # Input: Strings
+    # Output: Date object
+
+    # Convert planting date to a date object
+    planting_date = planting_date
+    # Get the multiplication right (flooring vs truncation) for grow weeks
+    grow_days = (growing_weeks * 7).round
+
+    planting_date + grow_days
+    # Add grow time to planting date
+    #   Return this date obj
+  end
+  
+  def planting_detail_hash(tuple)
+    planting_date = Date.parse(tuple['planting_date'])
+    grow_time_weeks = tuple['grow_time'].to_f
+    harvest_date = harvest_date(planting_date, grow_time_weeks)
+    currently_growing = Date.today.between?(planting_date, harvest_date)
+
+    {
+      id: tuple['id'].to_i,
+      garden_id: tuple['garden_id'].to_i,
+      name: tuple['name'],
+      description: tuple['description'],
+      num_plants: tuple['num_plants'].to_i,
+      area_per_plant_sq_ft: tuple['area_per_plant_sq_ft'].to_f,
+      # string
+      planting_date: planting_date,
+      grow_time_weeks: grow_time_weeks,
+      # Divergence from data avaliable in database
+      harvest_date: harvest_date, 
+      currently_growing: currently_growing
+    }
   end
 end

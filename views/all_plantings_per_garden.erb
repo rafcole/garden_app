@@ -1,0 +1,25 @@
+<h1>Details for: <%=@garden_details[:name]%></h1>
+<p><a href="edit">Edit this garden</a></p>
+<h2> Plants! <a href="<%=@garden_details[:id]%>/plantings/add">(Add more of them!)</a></h2>
+<h2> Currently growing </h2>
+  <% @active_plantings.each do |hsh| %>
+    <h3><%=hsh[:name]%></h3>
+    <ul>
+      <li> <strong><%="Harvest date: #{hsh[:harvest_date]}" %></strong></li>
+      <li> <%= "Planted date #{hsh[:planting_date]}"%> </li>
+      <li> <%="#{hsh[:num_plants]} planted requiring #{hsh[:num_plants].to_i * hsh[:area_per_plant_sq_ft].to_f} sq feet"%> </li>
+      <li> <%="#{hsh[:area_per_plant_sq_ft]} sq ft required per plant" %>
+      <li> <%="In season? #{hsh[:currently_growing]}"%>
+      <li> <a href="/plantings/<%=hsh[:id]%>/edit"><%= "Edit details"%></a> </li>
+    </ul>
+  <% end %>
+ <h2> Inactive</h2>
+   <% @inactive_plantings.each do |hsh| %>
+    <h3><%=hsh[:name]%></h3>
+    <ul>
+      <li> <%= "Growing season: #{hsh[:planting_date]} to #{hsh[:harvest_date]}"%> </li>
+      <li> <%="#{hsh[:num_plants]} planted requiring #{hsh[:num_plants].to_i * hsh[:area_per_plant_sq_ft].to_f} sq feet"%> </li>
+      <li> <%="#{hsh[:area_per_plant_sq_ft]} sq ft required per plant" %>
+      <li> <a href="/plantings/<%=hsh[:id]%>/edit"><%= "Edit details"%></a> </li>
+    </ul>
+  <% end %>
